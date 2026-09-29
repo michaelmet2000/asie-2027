@@ -2506,7 +2506,11 @@ img.emoji {
       <button id="pe-close" class="pe-close" aria-label="Fermer">Fermer ✕</button>
       <h2 id="pe-title">🖼️ Éditer les photos</h2>
       <p class="pe-intro">
-        Remplace n'importe quelle photo par la tienne (upload local) ou une URL. Les changements sont sauvés dans ton navigateur — pas besoin d'internet pour les fichiers locaux. Bouton ↺ pour restaurer l'originale.
+        Remplace n'importe quelle photo par la tienne (upload local) ou une URL. Les changements sont sauvés dans ce navigateur seulement. Bouton ↺ pour restaurer l'originale.
+      </p>
+      <p class="pe-intro">
+        📱 Pour les avoir aussi sur le téléphone : clique sur « Exporter », puis donne le fichier téléchargé à Claude, qui les intègre au site.
+        <button id="pe-export" class="pe-btn" type="button">📤 Exporter mes photos</button>
       </p>
       <div id="pe-list" class="pe-list"></div>
     </div>
@@ -2667,9 +2671,14 @@ document.addEventListener('DOMContentLoaded', () => {
     TOURS.forEach(t => { t.center = d3.geoCentroid({ type:'MultiPoint', coordinates: t.cities.map(c => [c.lng, c.lat]) }); });
     // Pays du voyage — couleurs de remplissage des continents
     const VISITED = { 756:'#E8C97A', 764:'#F5A623', 704:'#2ECC71', 392:'#FF3D7F', 410:'#3D9EFF', 156:'#FF4A2A', 344:'#B85CFF' };
-    const CX = 780, CY = 360;
-    const BASE = 330;    // échelle « survol » (globe entier dans les étoiles, pendant les vols)
-    const COUNTRY = 420; // échelle « plongée sur le pays » (les villes défilent)
+    // Écran en portrait (téléphone) : le viewBox 1200×700 est rogné sur les côtés (slice), seule la bande centrale
+    // reste visible. Le globe est alors centré et réduit à la largeur visible, dans l'espace libre au-dessus de la carte.
+    const sceneBox = svg.getBoundingClientRect();
+    const portrait = sceneBox.width > 0 && sceneBox.width / sceneBox.height < 1;
+    const visibleW = portrait ? 700 * sceneBox.width / sceneBox.height : 1200;
+    const CX = portrait ? 600 : 780, CY = portrait ? 190 : 360;
+    const BASE = portrait ? Math.round(visibleW * 0.52) : 330;    // échelle « survol » (globe entier dans les étoiles, pendant les vols)
+    const COUNTRY = portrait ? Math.round(visibleW * 0.66) : 420; // échelle « plongée sur le pays » (les villes défilent)
     const progressEl = document.getElementById('dest-progress');
 
     const projection = d3.geoOrthographic()
@@ -2724,6 +2733,7 @@ document.addEventListener('DOMContentLoaded', () => {
           cShade = document.getElementById('globeShade'),
           cRim   = document.getElementById('globeRim'),
           cAtmo  = document.getElementById('globeAtmo');
+    [cOcean, cClip, cShade, cRim, cAtmo].forEach(c => { if (c) { c.setAttribute('cx', CX); c.setAttribute('cy', CY); } });
     function syncGlobeRadius() {
       const s = projection.scale();
       if (cOcean) cOcean.setAttribute('r', s);
@@ -3342,13 +3352,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const fileInput = row.querySelector('.pe-file');
       const urlInput = row.querySelector('.pe-url');
       if (fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          savePhotoOverride(slug, reader.result);
+        // Photo réduite (1600 px max, JPEG) : le navigateur ne garde que ~5 Mo, et le site reste léger sur téléphone
+        reduirePhoto(fileInput.files[0]).then((dataUrl) => {
+          try { savePhotoOverride(slug, dataUrl); }
+          catch { alert('Plus assez de place dans le navigateur pour cette photo : utilise plutôt une URL.'); return; }
           applyPhotoOverrides();
           renderPhotoEditor();
-        };
-        reader.readAsDataURL(fileInput.files[0]);
+        });
       } else if (urlInput.value.trim()) {
         savePhotoOverride(slug, urlInput.value.trim());
         applyPhotoOverrides();
@@ -3356,6 +3366,35 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+  function reduirePhoto(file, max = 1600) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  // Export des photos personnalisées : Claude les intègre ensuite au site publié (appli_planning/integrer_photos.js)
+  document.getElementById('pe-export').addEventListener('click', () => {
+    const o = loadPhotoOverrides();
+    const n = Object.keys(o).length;
+    if (!n) { alert('Aucune photo personnalisée pour l’instant.'); return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(o)], { type: 'application/json' }));
+    a.download = 'photos_asie2027.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+
   // Escape to close
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && peModal.classList.contains('open')) closePhotoEditor();
