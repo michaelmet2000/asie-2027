@@ -1,0 +1,17 @@
+{
+  "name": "Asie 2027 · planning",
+  "short_name": "Asie 2027",
+  "description": "Le planning du voyage en Asie, jour par jour, même hors connexion.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D0D1F",
+  "theme_color": "#0D0D1F",
+  "lang": "fr",
+  "icons": [
+    { "src": "appli_planning/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "appli_planning/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "appli_planning/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

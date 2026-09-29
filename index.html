@@ -1,0 +1,3366 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0D0D1F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Asie 2027">
+  <link rel="manifest" href="planning.webmanifest">
+  <link rel="apple-touch-icon" href="appli_planning/apple-touch-icon.png">
+  <link rel="icon" href="appli_planning/icon-192.png">
+  <title>Asie 2027 — 5 pays, 103 nuits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Inter:wght@400;500;700;900&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <style>
+:root {
+  --bg:  #0D0D1F;
+  --s1:  #14142A;
+  --s2:  #1A1A38;
+  --bd:  #2E2E58;
+  --tx:  #F0F0FF;
+  --tx-mut: #A5A5C9;
+  --ac:  #E8C97A;
+  --jp:  #FF3D7F;
+  --kr:  #3D9EFF;
+  --cn:  #FF4A2A;
+  --zjj: #2ECC71;
+  --sz:  #FF9F1C;
+  --hk:  #B85CFF;
+  --th:  #F5A623;
+  --vn:  #2ECC71;
+  --font-title: 'Playfair Display', Georgia, serif;
+  --font-body:  'Inter', system-ui, sans-serif;
+  --font-cn:    'Noto Serif SC', serif;
+  --nav-h: 62px;
+  --max-w: 1280px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; scroll-padding-top: var(--nav-h); }
+
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* subtle noise overlay to avoid flat dark */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' seed='7'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+/* Leaflet default light background flash — force dark */
+.leaflet-container { background: #0a0a1a !important; }
+
+#topnav {
+  position: sticky; top: 0; z-index: 100;
+  height: var(--nav-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(13,13,31,0.72);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border-bottom: 1px solid var(--bd);
+}
+.nav-brand {
+  font-family: var(--font-title);
+  font-size: 20px; font-style: italic;
+  letter-spacing: 0.03em;
+  color: var(--tx);
+}
+.nav-brand span { color: var(--ac); margin-left: 6px; font-weight: 700; font-style: normal; }
+.nav-flags {
+  list-style: none;
+  display: flex; gap: 6px;
+}
+.nav-flag {
+  display: block;
+  width: 42px; height: 42px;
+  line-height: 42px; text-align: center;
+  font-size: 22px;
+  border-radius: 10px;
+  position: relative;
+  transition: background 180ms, transform 180ms;
+}
+.nav-flag:hover { background: var(--s1); transform: translateY(-2px); }
+.nav-flag::after {
+  content: ""; position: absolute; left: 8px; right: 8px; bottom: 4px;
+  height: 2px; border-radius: 2px;
+  background: transparent;
+  transition: background 200ms;
+}
+.nav-flag[data-country="thailand"].is-active::after { background: var(--th); }
+.nav-flag[data-country="vietnam"].is-active::after  { background: var(--vn); }
+.nav-flag[data-country="japan"].is-active::after    { background: var(--jp); }
+.nav-flag[data-country="korea"].is-active::after    { background: var(--kr); }
+.nav-flag[data-country="china"].is-active::after    { background: var(--cn); }
+
+#hero {
+  position: relative;
+  min-height: calc(100vh - var(--nav-h));
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.hero-scene {
+  position: absolute; inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(1400px 800px at 55% 45%, rgba(60,100,180,0.12), transparent 55%),
+    radial-gradient(900px 600px at 20% 80%, rgba(50,80,140,0.08), transparent 60%),
+    linear-gradient(180deg, #05081A 0%, #02030C 100%);
+}
+/* Star field */
+.hero-scene::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 15% 12%, rgba(255,255,255,0.75), transparent 60%),
+    radial-gradient(1px 1px at 45% 78%, rgba(255,255,255,0.55), transparent 60%),
+    radial-gradient(1.4px 1.4px at 75% 25%, rgba(255,255,255,0.65), transparent 60%),
+    radial-gradient(1px 1px at 88% 65%, rgba(255,255,255,0.45), transparent 60%),
+    radial-gradient(1px 1px at 30% 45%, rgba(200,220,255,0.5), transparent 60%),
+    radial-gradient(1px 1px at 62% 15%, rgba(255,255,255,0.5), transparent 60%),
+    radial-gradient(1.2px 1.2px at 8% 60%, rgba(255,255,255,0.55), transparent 60%),
+    radial-gradient(1px 1px at 55% 90%, rgba(200,220,255,0.35), transparent 60%);
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-scene::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 600px 140px at 50% 4%, rgba(2,3,12,0.9) 0%, transparent 60%),
+    radial-gradient(ellipse 800px 180px at 50% 96%, rgba(2,3,12,0.9) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 3;
+}
+.hero-svg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 2;
+}
+/* --- GLOBE (D3-driven) --- */
+.ocean { fill: url(#oceanGrad); }
+.country {
+  fill: #33604e;                       /* terre — émeraude sourd, nettement distinct de l'océan bleu */
+  stroke: rgba(8,20,16,0.55);
+  stroke-width: 0.4;
+  transition: fill 500ms ease;
+}
+.country.visited { fill: var(--country-color, rgba(180,190,220,0.5)); }
+.country.is-current { fill: var(--country-color-strong, #E8C97A); }
+.graticule {
+  fill: none;
+  stroke: rgba(200,215,240,0.10);
+  stroke-width: 0.5;
+}
+/* --- Animated starfield canvas (behind the globe) --- */
+.starfield { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+/* --- Big destination photo backdrop (behind the globe) --- */
+.hero-photo-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.hpb-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+  opacity: 0; transform: scale(1.06);
+  transition: opacity 1200ms ease, transform 9000ms ease-out;
+  filter: brightness(0.56) saturate(1.1) contrast(1.03);
+  will-change: opacity, transform;
+}
+.hpb-img.show { opacity: 1; transform: scale(1.16); }
+.hpb-tint {
+  position: absolute; inset: 0; pointer-events: none;
+  mix-blend-mode: soft-light; opacity: 0.55;
+  background: radial-gradient(72% 62% at 60% 52%, var(--tint, #E8C97A), transparent 72%);
+  transition: background 900ms ease;
+}
+.hpb-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(4,6,16,0.55) 0%, rgba(4,6,16,0.22) 30%, rgba(4,6,16,0.58) 68%, rgba(4,6,16,0.92) 100%),
+    linear-gradient(180deg, rgba(3,4,12,0.86) 0%, rgba(3,4,12,0.30) 22%, rgba(4,6,16,0) 52%, rgba(4,6,16,0.90) 100%);
+}
+.globe-rim {
+  fill: none;
+  stroke: rgba(160,200,255,0.7);
+  stroke-width: 1.2;
+}
+.globe-atmo {
+  fill: none;
+  stroke: rgba(100,160,240,0.35);
+  stroke-width: 12;
+  filter: blur(7px);
+}
+.globe-shade { fill: url(#shadeGrad); pointer-events: none; }
+/* --- TRIP PATH --- */
+.trip-arc {
+  fill: none;
+  stroke: rgba(232,201,122,0.85);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+  filter: drop-shadow(0 0 6px rgba(232,201,122,0.6));
+  animation: dashDrift 28s linear infinite;
+}
+@keyframes dashDrift {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -110; }
+}
+/* --- DESTINATION MARKERS --- */
+.marker-halo {
+  fill: currentColor;
+  opacity: 0;
+}
+.marker.is-current .marker-halo { opacity: 0.5; animation: markerPulse 2.6s ease-out infinite; }
+@keyframes markerPulse {
+  0%   { transform: scale(1);   opacity: 0.5; }
+  100% { transform: scale(3.6); opacity: 0;   }
+}
+.marker-dot {
+  fill: currentColor;
+  opacity: 0.38;
+  filter: drop-shadow(0 0 5px currentColor);
+  transition: opacity 320ms ease;
+}
+.marker.done .marker-dot { opacity: 0.95; }
+.marker.is-current .marker-dot { opacity: 1; }
+.marker-core { fill: #fff; opacity: 0.85; }
+.marker-label {
+  fill: #fff;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(2,3,12,0.95);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.marker.is-current .marker-label { opacity: 1; font-size: 16px; }
+/* --- AIRPLANE --- */
+.plane {
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.95)) drop-shadow(0 0 16px rgba(232,201,122,0.6));
+  transition: opacity 400ms;
+}
+.plane-body {
+  fill: #ffffff;
+  stroke: rgba(30,50,90,0.5);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+/* --- DESTINATION CARD (HTML overlay, positioned bottom-left of globe) --- */
+.dest-card {
+  position: absolute;
+  z-index: 5;
+  left: 32px; top: 50%;
+  transform: translateY(-50%) translateX(-12px);
+  width: min(320px, 30vw);
+  background: linear-gradient(180deg, rgba(11,14,32,0.94) 0%, rgba(6,8,20,0.96) 100%);
+  border: 1px solid rgba(140,180,240,0.28);
+  border-radius: 14px;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 60px -12px rgba(0,0,0,0.85), 0 0 40px -8px currentColor;
+  opacity: 0;
+  transition: opacity 700ms ease, transform 700ms ease;
+  pointer-events: none;
+}
+.dest-card.active { opacity: 1; transform: translateY(-50%) translateX(0); pointer-events: auto; }
+.dest-card-photo {
+  position: relative;
+  width: 100%; height: 200px;
+  overflow: hidden;
+}
+.dest-card-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform 8s ease; }
+.dest-card.active .dest-card-photo img { transform: scale(1.08); }
+.dest-card-photo::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(6,8,20,0.85) 100%);
+}
+.dest-card-order {
+  position: absolute; top: 12px; left: 12px;
+  padding: 4px 10px;
+  background: rgba(6,8,20,0.75);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: currentColor;
+  font-weight: 700;
+}
+.dest-card-body { padding: 18px 20px 22px; }
+.dest-card-flag {
+  display: inline-block;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.dest-card-name {
+  font-family: var(--font-title);
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+}
+.dest-card-country {
+  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: currentColor;
+  margin-top: 6px;
+  font-weight: 700;
+}
+.dest-card-meta {
+  margin-top: 14px;
+  display: flex; gap: 14px;
+  font-size: 12px; color: rgba(220,225,240,0.72);
+}
+.dest-card-meta strong { color: #fff; font-weight: 700; margin-right: 4px; }
+.dest-card-quote {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(140,180,240,0.15);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
+  color: rgba(220,225,240,0.85);
+  line-height: 1.45;
+}
+.dest-card-progress {
+  display: flex; gap: 4px;
+  margin-top: 14px;
+}
+.dest-card-progress span {
+  flex: 1; height: 2px;
+  background: rgba(140,180,240,0.15);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.dest-card-progress span.done { background: currentColor; opacity: 0.85; }
+.dest-card-progress span.current::after {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: currentColor;
+  animation: progFill 5.5s linear;
+}
+@keyframes progFill { from { width: 0; } to { width: 100%; } }
+@media (max-width: 900px) {
+  .dest-card { width: 260px; left: 16px; }
+  .dest-card-photo { height: 140px; }
+  .dest-card-name { font-size: 22px; }
+}
+@media (max-width: 640px) {
+  .dest-card {
+    left: 50%; top: auto; bottom: 120px;
+    transform: translateX(-50%) translateY(10px);
+    width: min(90%, 340px);
+  }
+  .dest-card.active { transform: translateX(-50%) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-arc { animation: none; }
+  .marker-halo { animation: none; }
+  .dest-card-progress span.current::after { animation: none; }
+}
+.hero-copy {
+  position: absolute; z-index: 4;
+  top: 24px; left: 24px; right: 24px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 24px;
+  pointer-events: none;
+}
+.hero-title-block { text-align: left; max-width: 55%; pointer-events: auto; }
+.hero-title {
+  font-family: var(--font-title);
+  font-size: clamp(20px, 2.6vw, 32px);
+  font-weight: 700;
+  color: #F0F0FF;
+  letter-spacing: 0.12em;
+  text-shadow: 0 3px 18px rgba(0,0,0,0.9);
+  line-height: 1.15;
+}
+.hero-title .accent { color: #E8C97A; font-style: italic; font-weight: 400; }
+.hero-sub {
+  font-size: clamp(11px, 1.05vw, 13px);
+  color: rgba(220,225,240,0.78);
+  margin-top: 4px;
+  letter-spacing: 0.08em;
+}
+.hero-countdown {
+  display: inline-flex; flex-direction: column; align-items: flex-end;
+  padding: 8px 16px;
+  border: 1px solid rgba(120,140,190,0.4);
+  border-radius: 10px;
+  background: rgba(11,14,32,0.65);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+.hero-countdown-value {
+  font-family: var(--font-title);
+  font-style: italic;
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 700;
+  color: var(--tx);
+  line-height: 1;
+}
+.hero-countdown-label {
+  margin-top: 4px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tx-mut);
+  text-align: right;
+}
+@media (max-width: 720px) {
+  .hero-copy { flex-direction: column; align-items: stretch; }
+  .hero-title-block { max-width: 100%; }
+  .hero-countdown { align-self: flex-start; }
+}
+.hero-tiles {
+  position: absolute; z-index: 4;
+  left: 0; right: 0; bottom: 18px;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  max-width: var(--max-w);
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.tile {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(11,14,32,0.78);
+  border: 1px solid rgba(120,140,190,0.28);
+  border-left: 3px solid var(--c);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  transition: transform 200ms, box-shadow 200ms, background 200ms;
+}
+.tile:hover {
+  transform: translateY(-2px);
+  background: rgba(20,24,50,0.9);
+  box-shadow: 0 10px 24px -12px var(--c);
+}
+.tile-flag  { font-size: 20px; }
+.tile-name  { font-family: var(--font-title); font-size: 14px; font-weight: 700; line-height: 1.1; }
+.tile-nights{ font-size: 11px; color: var(--tx-mut); grid-column: 2; margin-top: 1px; }
+.tile-status{ display: none; }
+
+@media (max-width: 720px) {
+  .hero-tiles {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 65%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .tile { scroll-snap-align: center; }
+}
+
+/* Numbered map marker */
+.trip-marker { background: transparent !important; border: 0 !important; }
+.trip-marker-dot {
+  display: block;
+  width: 34px; height: 34px; line-height: 32px;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+  font-family: var(--font-title); font-weight: 700; font-size: 15px;
+  text-align: center;
+  border: 1.5px solid var(--ac);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  cursor: pointer;
+  transition: transform 200ms;
+}
+.trip-marker-dot:hover { transform: scale(1.18); }
+
+/* Hover tooltip (custom-styled Leaflet tooltip) */
+.leaflet-tooltip.trip-tooltip {
+  background: var(--s1);
+  border: 1px solid rgba(232,201,122,0.4);
+  border-radius: 10px;
+  padding: 0;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+  color: var(--tx);
+  font-family: var(--font-body);
+}
+.leaflet-tooltip.trip-tooltip::before { display: none; }
+.trip-popup { display: flex; gap: 10px; padding: 8px; align-items: center; min-width: 180px; }
+.trip-popup img {
+  width: 70px; height: 70px; object-fit: cover;
+  border-radius: 6px; flex-shrink: 0;
+}
+.trip-popup-name { font-family: var(--font-title); font-size: 16px; font-weight: 700; }
+.trip-popup-meta { font-size: 11px; color: var(--ac); margin-top: 2px; letter-spacing: 0.06em; }
+.trip-popup-tag {
+  display: inline-block; margin-top: 6px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  border: 1px solid var(--c); color: var(--c);
+}
+
+/* Container that country sections will use to host the map */
+.trip-map-container {
+  height: 480px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+}
+
+/* ===== Shared country-section layout (Task 6, reused by Korea + China) ===== */
+.country-section {
+  position: relative;
+  padding: 60px 0 100px;
+  margin-top: 60px;
+}
+.country-section > .container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.section-header { text-align: center; margin-bottom: 32px; }
+.section-title {
+  font-family: var(--font-title);
+  font-size: clamp(40px, 6vw, 68px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.section-subtitle {
+  font-size: 15px;
+  color: var(--tx-mut);
+  margin-top: 8px;
+  letter-spacing: 0.06em;
+}
+
+.banner {
+  position: relative;
+  height: 420px;
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.banner img { width: 100%; height: 100%; object-fit: cover; }
+.banner::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(120deg, rgba(13,13,31,0.4) 0%, rgba(13,13,31,0) 50%, var(--c-fade, rgba(255,61,127,0.6)) 100%);
+}
+
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 4px;
+  padding: 26px 0;
+  border-top: 1px solid var(--bd);
+  border-bottom: 1px solid var(--bd);
+  margin-bottom: 40px;
+}
+.stat { text-align: center; padding: 8px 12px; }
+.stat-num {
+  font-family: var(--font-title); font-weight: 700;
+  font-size: 42px; line-height: 1;
+  color: var(--c-primary, var(--jp));
+}
+.stat-lab {
+  font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--tx-mut);
+  margin-top: 8px;
+}
+
+.gallery {
+  display: flex; gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 0 20px;
+  margin-bottom: 48px;
+}
+.gallery::-webkit-scrollbar { height: 6px; }
+.gallery::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 3px; }
+.gallery-item {
+  position: relative;
+  flex: 0 0 260px;
+  height: 170px;
+  border-radius: 10px;
+  overflow: hidden;
+  scroll-snap-align: start;
+  transition: transform 220ms;
+}
+.gallery-item:hover { transform: translateY(-3px); }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-item span {
+  position: absolute; left: 12px; right: 12px; bottom: 10px;
+  font-family: var(--font-title); font-style: italic; font-size: 14px;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  z-index: 2;
+}
+.gallery-item::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 45%);
+}
+
+.body-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 40px;
+  align-items: start;
+}
+.phases { display: flex; flex-direction: column; gap: 28px; }
+.rail { position: sticky; top: calc(var(--nav-h) + 16px); display: flex; flex-direction: column; gap: 24px; }
+
+.phase {
+  position: relative;
+  padding: 24px 26px 22px;
+  background: var(--s1);
+  border-radius: 14px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 500ms ease-out, transform 500ms ease-out;
+}
+.phase.vis { opacity: 1; transform: none; }
+.phase-decor {
+  position: absolute; right: 12px; top: 4px;
+  font-size: 180px; line-height: 1;
+  color: var(--c-primary);
+  opacity: 0.05;
+  pointer-events: none;
+  user-select: none;
+}
+.phase-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 6px;
+  position: relative;
+}
+.phase-name { font-size: 26px; position: relative; }
+.phase-nights {
+  font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--c-primary); font-weight: 700;
+  flex-shrink: 0;
+}
+.phase-dates { font-size: 13px; color: var(--tx-mut); margin-bottom: 12px; position: relative; }
+.phase-base { font-size: 14px; margin-bottom: 14px; position: relative; }
+.phase-base strong { color: var(--ac); }
+
+.phase details { margin-top: 12px; position: relative; }
+.phase details summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--tx-mut);
+  list-style: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.phase details summary::-webkit-details-marker { display: none; }
+.phase details summary::before {
+  content: "▶"; font-size: 10px; transition: transform 200ms;
+}
+.phase details[open] summary::before { transform: rotate(90deg); }
+
+.day-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; margin-top: 8px;
+}
+.day-table th, .day-table td {
+  padding: 10px 8px; text-align: left; vertical-align: top;
+  border-bottom: 1px solid rgba(46,46,88,0.5);
+}
+.day-table th {
+  font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--tx-mut); font-weight: 500;
+}
+.day-table td:first-child { font-weight: 700; color: var(--c-primary); white-space: nowrap; }
+.day-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.notes {
+  margin-top: 16px; padding: 14px 16px;
+  background: rgba(232,201,122,0.06);
+  border-left: 2px solid var(--ac);
+  border-radius: 6px;
+  font-size: 13px;
+  position: relative;
+}
+.notes-head {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ac); margin-bottom: 6px;
+}
+
+.practical {
+  padding: 20px 22px;
+  background: var(--s1);
+  border-radius: 12px;
+  border-top: 2px solid var(--c-primary);
+}
+.practical h3 {
+  font-family: var(--font-title); font-size: 20px;
+  margin-bottom: 14px; color: var(--c-primary);
+}
+.practical ul { list-style: none; }
+.practical li {
+  display: flex; gap: 10px; padding: 6px 0;
+  font-size: 13px;
+}
+
+.checklist {
+  padding: 20px 22px;
+  background: var(--s1);
+  border-radius: 12px;
+}
+.checklist h3 {
+  font-family: var(--font-title); font-size: 20px;
+  margin-bottom: 14px; color: var(--c-primary);
+}
+.check-group { margin-bottom: 14px; }
+.check-group-head {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--tx-mut); margin-bottom: 6px;
+}
+.check-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 6px 0; font-size: 13px;
+  cursor: pointer;
+}
+.check-item input { margin-top: 4px; accent-color: var(--c-primary); flex-shrink: 0; }
+.check-item.done span { text-decoration: line-through; opacity: 0.5; }
+.progress { height: 4px; background: var(--bd); border-radius: 2px; overflow: hidden; margin-top: 12px; }
+.progress-fill { height: 100%; background: var(--c-primary); transition: width 300ms; }
+.progress-label { font-size: 11px; color: var(--tx-mut); margin-top: 6px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+@media (max-width: 1023px) {
+  .body-grid { grid-template-columns: 1fr; }
+  .rail { position: static; }
+}
+
+/* ===== Japan-specific section scope ===== */
+.section-japan {
+  --c-primary: var(--jp);
+  --c-fade: rgba(255, 61, 127, 0.55);
+}
+.section-japan .section-title { color: var(--tx); }
+.section-japan .phase { border-left: 3px solid var(--jp); }
+.section-japan .phase-name {
+  font-family: var(--font-title);
+  font-style: italic;
+  color: var(--jp);
+}
+
+/* ===== Korea-specific section scope ===== */
+.section-korea {
+  --c-primary: var(--kr);
+  --c-fade: rgba(61, 158, 255, 0.55);
+}
+.section-korea .phase {
+  border-top: 3px solid var(--kr);
+  border-left: 0;
+  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
+}
+.section-korea .phase-name {
+  font-family: var(--font-body);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--kr);
+  font-style: normal;
+  font-size: 24px;
+}
+.section-korea .phase-badge {
+  position: absolute; top: 0; right: 0;
+  padding: 6px 16px 6px 20px;
+  background: var(--kr);
+  color: var(--bg);
+  font-family: var(--font-body); font-weight: 900;
+  font-size: 11px; letter-spacing: 0.14em;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%);
+  z-index: 3;
+}
+.section-korea .phase-decor { display: none; }
+
+/* ===== China + HK-specific section scope (Task 8) ===== */
+.section-china {
+  --c-primary: var(--cn);
+  --c-fade: rgba(255, 74, 42, 0.55);
+}
+.section-china .phase {
+  border-left: 4px solid var(--c-city, var(--cn));
+  border-top: 1px solid var(--ac);
+}
+.section-china .phase-name {
+  font-family: var(--font-cn);
+  font-weight: 700;
+  color: var(--c-city, var(--cn));
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1.1;
+}
+.section-china .phase-name .fr {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx-mut);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 4px;
+  font-weight: 500;
+}
+.section-china .phase[data-city="chongqing"]   { --c-city: var(--cn);  }
+.section-china .phase[data-city="wulong"]      { --c-city: #1ABC9C;    }
+.section-china .phase[data-city="zhangjiajie"] { --c-city: var(--zjj); }
+.section-china .phase[data-city="shenzhen"]    { --c-city: var(--sz);  }
+.section-china .phase[data-city="hongkong"]    { --c-city: var(--hk);  }
+.section-china .phase-decor {
+  font-family: var(--font-cn);
+  opacity: 0.06;
+  color: var(--c-city, var(--cn));
+}
+/* Override the phase-nights color per-city too */
+.section-china .phase-nights { color: var(--c-city, var(--cn)); }
+
+.section-th, .section-vn {
+  padding: 40px 0 60px;
+  margin-top: 40px;
+}
+.section-th { --c-primary: var(--th); --c-fade: rgba(245,166,35,0.55); }
+.section-vn { --c-primary: var(--vn); --c-fade: rgba(46,204,113,0.55); }
+
+/* ===== Thaïlande — carte : bord gauche or, nom Playfair italique ===== */
+.section-th .phase {
+  border-left: 3px solid var(--th);
+  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
+}
+.section-th .phase-name {
+  font-family: var(--font-title);
+  font-style: italic;
+  color: var(--th);
+}
+.section-th .phase-badge {
+  position: absolute; top: 0; right: 0;
+  padding: 6px 16px 6px 20px;
+  background: var(--th); color: var(--bg);
+  font-family: var(--font-body); font-weight: 900;
+  font-size: 11px; letter-spacing: 0.12em;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%);
+  z-index: 3;
+}
+.section-th .phase-decor { display: none; }
+
+/* ===== Vietnam — carte : bord haut vert, nom Inter bold, badge ===== */
+.section-vn .phase {
+  border-top: 3px solid var(--vn);
+  border-left: 0;
+  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
+}
+.section-vn .phase-name {
+  font-family: var(--font-body);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vn);
+  font-style: normal;
+  font-size: 23px;
+}
+.section-vn .phase-badge {
+  position: absolute; top: 0; right: 0;
+  padding: 6px 16px 6px 20px;
+  background: var(--vn); color: var(--bg);
+  font-family: var(--font-body); font-weight: 900;
+  font-size: 11px; letter-spacing: 0.12em;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%);
+  z-index: 3;
+}
+.section-vn .phase-decor { display: none; }
+
+.placeholder-banner {
+  position: relative;
+  height: 340px;
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.placeholder-banner img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.7); }
+.placeholder-banner::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(120deg, rgba(13,13,31,0.5) 0%, rgba(13,13,31,0.1) 60%, var(--c-fade) 100%);
+}
+.placeholder-body { text-align: center; max-width: 600px; margin: 20px auto 0; }
+.placeholder-tag {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--c-primary);
+  border-radius: 999px;
+  color: var(--c-primary);
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.placeholder-title { font-family: var(--font-title); font-size: 28px; margin-bottom: 8px; }
+.placeholder-blurb { color: var(--tx-mut); font-size: 15px; }
+
+#footer {
+  padding: 40px 24px 60px;
+  border-top: 1px solid var(--bd);
+  text-align: center;
+  color: var(--tx-mut);
+  margin-top: 40px;
+}
+.footer-line { font-family: var(--font-title); font-size: 16px; letter-spacing: 0.06em; }
+.footer-sub { font-size: 12px; margin-top: 6px; letter-spacing: 0.1em; }
+
+@media print {
+  #topnav, .hero-scene, .trip-map-container, .hero-tiles, .pe-fab, .pe-modal-back { display: none !important; }
+  body { background: #fff; color: #000; }
+  .phase { opacity: 1 !important; transform: none !important; break-inside: avoid; page-break-inside: avoid; }
+  .banner, .gallery, .placeholder-banner { break-inside: avoid; }
+  a { color: #000; text-decoration: underline; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+  .phase { opacity: 1 !important; transform: none !important; }
+}
+
+/* --- Twemoji flags (Windows-safe cross-platform emojis) --- */
+img.emoji {
+  height: 1em; width: 1em;
+  margin: 0 0.05em 0 0.1em;
+  vertical-align: -0.12em;
+  display: inline-block;
+}
+.nav-flag img.emoji { height: 22px; width: 22px; vertical-align: middle; margin: 0; }
+.tile-flag img.emoji { height: 28px; width: 28px; vertical-align: middle; margin: 0; }
+.section-title img.emoji { height: 0.8em; width: 0.8em; vertical-align: -0.05em; margin: 0 0.15em 0 0; }
+.phase-name img.emoji, .phase-name .fr img.emoji { height: 0.85em; width: 0.85em; vertical-align: -0.05em; }
+.gallery-item span img.emoji, .practical li img.emoji { height: 0.9em; width: 0.9em; }
+.footer-line img.emoji { height: 0.9em; width: 0.9em; }
+
+/* --- Photo editor UI --- */
+.pe-fab {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--ac); color: var(--bg);
+  font-size: 22px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  cursor: pointer;
+  transition: transform 200ms, box-shadow 200ms;
+  border: none;
+}
+.pe-fab:hover { transform: scale(1.08); box-shadow: 0 12px 40px rgba(232,201,122,0.5); }
+.pe-modal-back {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+  display: none; align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 40px 20px;
+}
+.pe-modal-back.open { display: flex; }
+.pe-modal {
+  background: var(--s1); color: var(--tx);
+  border-radius: 18px; padding: 28px 32px;
+  max-width: 900px; width: 100%;
+  border: 1px solid var(--bd);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+}
+.pe-modal h2 { font-family: var(--font-title); font-size: 28px; margin-bottom: 4px; color: var(--ac); }
+.pe-intro { color: var(--tx-mut); font-size: 13px; margin-bottom: 20px; }
+.pe-close {
+  float: right;
+  background: transparent; border: 1px solid var(--bd);
+  color: var(--tx); padding: 6px 12px; border-radius: 8px;
+  cursor: pointer; font-size: 12px;
+  font-family: var(--font-body);
+}
+.pe-close:hover { background: var(--bd); }
+.pe-group-head {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ac); margin: 18px 0 8px;
+}
+.pe-list { display: grid; gap: 10px; }
+.pe-row {
+  display: grid; grid-template-columns: 90px 1fr auto; gap: 12px;
+  align-items: center;
+  padding: 10px; background: var(--bg); border-radius: 10px;
+  border: 1px solid var(--bd);
+}
+.pe-thumb {
+  width: 90px; height: 60px; border-radius: 6px;
+  object-fit: cover; background: var(--s2);
+}
+.pe-info { min-width: 0; }
+.pe-label { font-family: var(--font-title); font-size: 15px; margin-bottom: 3px; }
+.pe-slug { font-size: 10px; color: var(--tx-mut); font-family: monospace; letter-spacing: 0.05em; }
+.pe-status { font-size: 11px; margin-top: 3px; color: var(--ac); }
+.pe-status.default { color: var(--tx-mut); }
+.pe-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.pe-btn {
+  padding: 6px 12px; font-size: 12px; letter-spacing: 0.04em;
+  background: var(--bd); color: var(--tx); border-radius: 6px;
+  cursor: pointer; border: none; font-family: var(--font-body);
+  transition: background 160ms, color 160ms;
+}
+.pe-btn:hover { background: var(--ac); color: var(--bg); }
+.pe-btn.reset { background: transparent; border: 1px solid var(--bd); padding: 6px 10px; }
+.pe-btn.reset:hover { background: #802020; color: #fff; border-color: #802020; }
+.pe-inline-input {
+  display: none;
+  margin-top: 8px; grid-column: 1 / -1;
+  gap: 8px; flex-wrap: wrap; align-items: center;
+  padding-top: 10px; border-top: 1px dashed var(--bd);
+}
+.pe-row.editing .pe-inline-input { display: flex; }
+.pe-inline-input label { font-size: 11px; color: var(--tx-mut); }
+.pe-inline-input input[type="url"] {
+  flex: 1; min-width: 220px;
+  padding: 8px 12px; background: var(--s2); color: var(--tx);
+  border: 1px solid var(--bd); border-radius: 6px; font-size: 12px;
+  font-family: monospace;
+}
+.pe-inline-input input[type="file"] {
+  font-size: 12px; color: var(--tx-mut);
+  max-width: 220px;
+}
+@media (max-width: 640px) {
+  .pe-row { grid-template-columns: 60px 1fr; }
+  .pe-thumb { width: 60px; height: 40px; }
+  .pe-actions { grid-column: 1 / -1; justify-content: flex-end; }
+}
+  </style>
+</head>
+<body>
+  <nav id="topnav" aria-label="Navigation principale">
+    <a href="#hero" class="nav-brand">Asie<span>2027</span></a>
+    <ul class="nav-flags">
+      <li><a href="#thailand"  class="nav-flag" data-country="thailand"  title="Thaïlande">🇹🇭</a></li>
+      <li><a href="#vietnam"   class="nav-flag" data-country="vietnam"   title="Vietnam">🇻🇳</a></li>
+      <li><a href="#japan"     class="nav-flag" data-country="japan"     title="Japon">🇯🇵</a></li>
+      <li><a href="#korea"     class="nav-flag" data-country="korea"     title="Corée">🇰🇷</a></li>
+      <li><a href="#china"     class="nav-flag" data-country="china"     title="Chine + HK">🇨🇳</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section id="hero">
+<div class="hero-scene" aria-hidden="true">
+  <div class="hero-photo-bg" aria-hidden="true">
+    <img class="hpb-img" id="hpb-a" alt="">
+    <img class="hpb-img" id="hpb-b" alt="">
+    <div class="hpb-tint" id="hpb-tint"></div>
+    <div class="hpb-overlay"></div>
+  </div>
+  <canvas class="starfield" id="starfield"></canvas>
+  <svg class="hero-svg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <radialGradient id="oceanGrad" cx="35%" cy="25%" r="80%">
+        <stop offset="0%"   stop-color="#2f74b0"/>
+        <stop offset="55%"  stop-color="#123a63"/>
+        <stop offset="90%"  stop-color="#06172f"/>
+        <stop offset="100%" stop-color="#020914"/>
+      </radialGradient>
+      <radialGradient id="shadeGrad" cx="30%" cy="22%" r="90%">
+        <stop offset="0%"   stop-color="rgba(255,255,255,0.16)"/>
+        <stop offset="30%"  stop-color="rgba(255,255,255,0)"/>
+        <stop offset="70%"  stop-color="rgba(0,5,20,0.30)"/>
+        <stop offset="100%" stop-color="rgba(0,0,10,0.85)"/>
+      </radialGradient>
+      <clipPath id="globeClipD3"><circle id="clipCircle" cx="780" cy="360" r="330"/></clipPath>
+      <symbol id="planeIcon" viewBox="-16 -16 32 32">
+        <path class="plane-body" d="M 14,0 L 2,-2 L -8,-13 L -12,-13 L -6,-2 L -11,-2 L -13,-5 L -14,-5 L -13.5,-2 L -14.5,0 L -13.5,2 L -14,5 L -13,5 L -11,2 L -6,2 L -12,13 L -8,13 L 2,2 Z"/>
+      </symbol>
+    </defs>
+
+    <!-- Atmosphere outer halo -->
+    <circle id="globeAtmo" class="globe-atmo" cx="780" cy="360" r="345"/>
+
+    <!-- Ocean sphere (base circle) -->
+    <circle id="oceanCircle" class="ocean" cx="780" cy="360" r="330"/>
+
+    <!-- D3-rendered content clipped to globe -->
+    <g id="globe-content" clip-path="url(#globeClipD3)">
+      <path id="graticule" class="graticule"/>
+      <g id="countries"></g>
+      <path id="trip-arc" class="trip-arc"/>
+    </g>
+
+    <!-- Terminator shading -->
+    <circle id="globeShade" class="globe-shade" cx="780" cy="360" r="330" clip-path="url(#globeClipD3)"/>
+
+    <!-- Rim highlight -->
+    <circle id="globeRim" class="globe-rim" cx="780" cy="360" r="330"/>
+
+    <!-- Markers group -->
+    <g id="markers"></g>
+
+    <!-- Airplane -->
+    <use id="plane" href="#planeIcon" class="plane" width="30" height="30" x="-15" y="-15" transform="translate(-9999,-9999)"/>
+  </svg>
+
+  <!-- Destination photo card -->
+  <div class="dest-card" id="dest-card" style="color:#E8C97A">
+    <div class="dest-card-photo">
+      <img id="dest-img" src="" alt="">
+      <div class="dest-card-order" id="dest-order">Étape 1 / 6</div>
+    </div>
+    <div class="dest-card-body">
+      <span class="dest-card-flag" id="dest-flag">🇹🇭</span>
+      <div class="dest-card-name" id="dest-name">Bangkok</div>
+      <div class="dest-card-country" id="dest-country">Thaïlande</div>
+      <div class="dest-card-meta">
+        <span><strong id="dest-nights">~3 sem.</strong></span>
+        <span><strong id="dest-date">17 fév</strong></span>
+      </div>
+      <div class="dest-card-quote" id="dest-quote">« Le voyage commence ici. »</div>
+      <div class="dest-card-progress" id="dest-progress"></div>
+    </div>
+  </div>
+</div>
+<div class="hero-copy">
+  <div class="hero-title-block">
+    <h1 class="hero-title">Asie <span class="accent">·</span> Printemps 2027</h1>
+    <p class="hero-sub">5 pays · 103 nuits · Home → Bangkok → Hong Kong</p>
+  </div>
+  <div class="hero-countdown" role="timer" aria-live="polite" aria-atomic="true">
+    <div class="hero-countdown-value" id="countdown">J-—</div>
+    <div class="hero-countdown-label">16 fév 2027 · 20h00 · Home → Bangkok</div>
+  </div>
+</div><ul class="hero-tiles" aria-label="Aperçu par pays">
+  <li><a href="#thailand" class="tile" style="--c:var(--th)"><span class="tile-flag">🇹🇭</span><span class="tile-name">Thaïlande</span><span class="tile-nights">22 nuits</span><span class="tile-status">planifié</span></a></li>
+  <li><a href="#vietnam"  class="tile" style="--c:var(--vn)"><span class="tile-flag">🇻🇳</span><span class="tile-name">Vietnam</span><span class="tile-nights">21 nuits</span><span class="tile-status">planifié</span></a></li>
+  <li><a href="#japan"    class="tile" style="--c:var(--jp)"><span class="tile-flag">🇯🇵</span><span class="tile-name">Japon</span><span class="tile-nights">29 nuits</span><span class="tile-status">planifié</span></a></li>
+  <li><a href="#korea"    class="tile" style="--c:var(--kr)"><span class="tile-flag">🇰🇷</span><span class="tile-name">Corée</span><span class="tile-nights">9 nuits</span><span class="tile-status">planifié</span></a></li>
+  <li><a href="#china"    class="tile" style="--c:var(--cn)"><span class="tile-flag">🇨🇳</span><span class="tile-name">Chine + HK</span><span class="tile-nights">22 nuits</span><span class="tile-status">planifié</span></a></li>
+</ul>
+    </section>
+    <section id="thailand"  class="country-section section-th">
+<div class="container">
+  <header class="section-header">
+    <h2 class="section-title">🇹🇭 Thaïlande</h2>
+    <p class="section-subtitle">17 février → 11 mars 2027 · 22 nuits · 7 étapes + 1 nuit tampon · vol Zurich le 16 fév à 20h00</p>
+  </header>
+
+  <div class="banner">
+    <img data-slug="th-banner" data-label="Thaïlande · Bannière (Wat Arun)" src="https://source.unsplash.com/featured/1600x400/?bangkok,wat-arun,temple" alt="Bangkok · Wat Arun">
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">22</div><div class="stat-lab">Nuits</div></div>
+    <div class="stat"><div class="stat-num">7</div><div class="stat-lab">Étapes</div></div>
+    <div class="stat"><div class="stat-num">2</div><div class="stat-lab">Vols internes</div></div>
+    <div class="stat"><div class="stat-num">2</div><div class="stat-lab">Îles du Sud</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-lab">Nuit lac flottant</div></div>
+  </div>
+
+  <div class="gallery" aria-label="Galerie Thaïlande">
+    <div class="gallery-item"><img data-slug="th-gal-bangkok" data-label="Thaïlande · Galerie Bangkok / Grand Palace" src="https://source.unsplash.com/featured/400x260/?bangkok,grand-palace" alt="" loading="lazy"><span>Bangkok · Grand Palace</span></div>
+    <div class="gallery-item"><img data-slug="th-gal-ayutthaya" data-label="Thaïlande · Galerie Ayutthaya" src="https://source.unsplash.com/featured/400x260/?ayutthaya,ruins" alt="" loading="lazy"><span>Ayutthaya</span></div>
+    <div class="gallery-item"><img data-slug="th-gal-chiangmai" data-label="Thaïlande · Galerie Chiang Mai / Doi Suthep" src="https://source.unsplash.com/featured/400x260/?chiang-mai,doi-suthep,temple" alt="" loading="lazy"><span>Chiang Mai · Doi Suthep</span></div>
+    <div class="gallery-item"><img data-slug="th-gal-chiangrai" data-label="Thaïlande · Galerie Chiang Rai / White Temple" src="https://source.unsplash.com/featured/400x260/?chiang-rai,white-temple" alt="" loading="lazy"><span>Chiang Rai · White Temple</span></div>
+    <div class="gallery-item"><img data-slug="th-gal-khaosok" data-label="Thaïlande · Galerie Khao Sok / lac Cheow Lan" src="https://source.unsplash.com/featured/400x260/?khao-sok,cheow-lan,lake" alt="" loading="lazy"><span>Khao Sok · Cheow Lan</span></div>
+    <div class="gallery-item"><img data-slug="th-gal-phangnga" data-label="Thaïlande · Galerie Baie de Phang Nga" src="https://source.unsplash.com/featured/400x260/?phang-nga,bay" alt="" loading="lazy"><span>Phang Nga Bay</span></div>
+    <div class="gallery-item"><img data-slug="th-gal-krabi" data-label="Thaïlande · Galerie Krabi / Railay" src="https://source.unsplash.com/featured/400x260/?krabi,railay-beach" alt="" loading="lazy"><span>Krabi · Railay</span></div>
+    <div class="gallery-item"><img data-slug="th-gal-phiphi" data-label="Thaïlande · Galerie Koh Phi Phi / Maya Bay" src="https://source.unsplash.com/featured/400x260/?phi-phi,maya-bay" alt="" loading="lazy"><span>Koh Phi Phi · Maya Bay</span></div>
+  </div>
+
+  <div class="body-grid">
+    <div class="phases">
+
+      <article class="phase">
+        <span class="phase-badge">BANGKOK · J1–J4</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🛕 Bangkok</h3>
+          <span class="phase-nights">4 nuits</span>
+        </div>
+        <div class="phase-dates">17–20 février · J1–J4 · + excursion Ayutthaya</div>
+        <div class="phase-base"><strong>Base :</strong> une seule adresse pour les 4 nuits — Ayutthaya se fait en excursion à la journée, sans changer d'hôtel</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J1</td><td>17 fév · Mer</td><td>✈️ Arrivée ~13h (vol Zurich 16 fév 20h00) · installation · première balade + street food dans Chinatown (Yaowarat) le soir</td><td>Vol direct ~11h, +6h de décalage (plus tard si escale) · journée légère</td></tr>
+              <tr><td>J2</td><td>18 fév · Jeu</td><td>🌅 Grand Palace + Wat Phra Kaew tôt · Wat Pho (Bouddha couché) · traversée du fleuve · Wat Arun · rooftop au coucher du soleil</td><td>Grand Palace avant 9h · tenue couvrante obligatoire (épaules + genoux)</td></tr>
+              <tr><td>J3</td><td>19 fév · Ven</td><td>🚆 Excursion Ayutthaya à la journée (ancienne capitale UNESCO, temples en ruines à vélo) · retour Bangkok en soirée</td><td>Train ou van ~1h30 · louer un vélo sur place · repartir avant la chaleur de midi</td></tr>
+              <tr><td>J4</td><td>20 fév · Sam</td><td>🛍️ Chatuchak Weekend Market · massage thaï · derniers rooftops · shopping</td><td>Chatuchak = samedi-dimanche uniquement, y aller tôt · dernière nuit à Bangkok avant le nord</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Grand Palace & temples : y aller tôt (chaleur + foule). Tenue couvrante exigée dans les temples. Ayutthaya en excursion sans changer d'hôtel = zéro logistique bagages. Vol interne Bangkok → Chiang Mai à réserver pour le matin du J5.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">CHIANG MAI · J5–J8</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🌸 Chiang Mai</h3>
+          <span class="phase-nights">4 nuits</span>
+        </div>
+        <div class="phase-dates">21–24 février · J5–J8</div>
+        <div class="phase-base"><strong>Base :</strong> Vieille ville (Old City) ou Nimman — cafés, temples, marchés à pied</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J5</td><td>21 fév · Dim</td><td>✈️ Vol Bangkok → Chiang Mai (matin) · temples de la vieille ville · Sunday Walking Street (Ratchadamnoen)</td><td>Vol ~1h20 · le dimanche = grand marché de nuit de la vieille ville</td></tr>
+              <tr><td>J6</td><td>22 fév · Lun</td><td>🌄 Doi Suthep (temple doré, vue sur la ville) · après-midi cafés & artisanat (Nimman)</td><td>Doi Suthep tôt le matin · songthaew rouge depuis la vieille ville</td></tr>
+              <tr><td>J7</td><td>23 fév · Mar</td><td>🐘 Sanctuaire d'éléphants éthique (journée complète, pas de balade à dos)</td><td>⚠️ Réserver un vrai sanctuaire no-riding (ex. Elephant Nature Park) plusieurs semaines avant</td></tr>
+              <tr><td>J8</td><td>24 fév · Mer</td><td>👨‍🍳 Cours de cuisine thaïe le matin · massage traditionnel · derniers marchés & cafés</td><td>Surveiller la qualité de l'air (burning season) avant de confirmer</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Sanctuaire d'éléphants : choisir impérativement un centre éthique <em>sans</em> balade à dos, à réserver à l'avance. ⚠️ Burning season (mars) : la qualité de l'air dans le nord peut chuter — vérifier l'AQI avant le départ et prévoir un plan B côté sud si besoin.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">CHIANG RAI · J9–J10</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🎨 Chiang Rai</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">25–26 février · J9–J10</div>
+        <div class="phase-base"><strong>Base :</strong> centre-ville de Chiang Rai — les 3 temples se font en boucle sur une journée</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J9</td><td>25 fév · Jeu</td><td>🚐 Bus/van Chiang Mai → Chiang Rai (~3h) · White Temple (Wat Rong Khun) l'après-midi</td><td>White Temple ferme ~17h · éviter le milieu de journée (foule)</td></tr>
+              <tr><td>J10</td><td>26 fév · Ven</td><td>💙 Blue Temple (Wat Rong Suea Ten) · Black House (Baan Dam) · Golden Triangle en option</td><td>Golden Triangle (~1h de route) uniquement si envie</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Les 3 temples (White / Blue / Black) sont l'essentiel de Chiang Rai. Même vigilance burning season / qualité de l'air que Chiang Mai. Le lendemain est une journée de transport vers le sud — prévoir des vols tôt.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">KHAO SOK · J11–J12</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🛶 Khao Sok</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">27–28 février · J11–J12 · dont 1 nuit sur le lac</div>
+        <div class="phase-base"><strong>Base :</strong> 1 nuit dans un hôtel confortable à Khao Sok Village (chambre bien fermée, clim, salle de bain privée) + 1 nuit en bungalow flottant sur le lac Cheow Lan</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J11</td><td>27 fév · Sam</td><td>✈️ Vol Chiang Rai → Surat Thani avec 1 escale (~4h30, arrivée ~14h30) · 🚐 transfert vers Khao Sok Village (~1h30) · installation · soirée tranquille</td><td>Journée de transport · hôtel confortable et bien fermé : Hotel Khao Sok &amp; Spa, Montania ou Jasmine Garden. Pas de cabane ouverte ni de treehouse</td></tr>
+              <tr><td>J12</td><td>28 fév · Dim</td><td>⛵ Lac Cheow Lan : balade en bateau traditionnel · kayak · baignade · paysages · nuit en bungalow flottant</td><td>Activités tranquilles sur le lac · pas de safari nocturne ni de sortie centrée sur les animaux · réserver le bungalow flottant tôt (places limitées)</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Le clou de l'étape = la nuit en bungalow flottant sur Cheow Lan et le lever de soleil. Le J11 est un jour de transport (vol avec escale, arrivée vers 14h30), d'où une première nuit dans un hôtel confortable au village plutôt qu'en pleine jungle.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">PHANG NGA · J13</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🏝️ Phang Nga</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">1er mars · J13</div>
+        <div class="phase-base"><strong>Base :</strong> l'hôtel coup de cœur déjà repéré, face à la baie</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J13</td><td>1er mars · Lun</td><td>🌅 Lever de soleil sur le lac Cheow Lan depuis le bungalow · 🚗 Transfert Khao Sok → Phang Nga · baie de Phang Nga · 🌅 Samet Nangshe Viewpoint au coucher / lever du soleil · nuit à l'hôtel repéré</td><td>Samet Nangshe : le point de vue emblématique sur les pitons karstiques</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Étape courte mais stratégique : Samet Nangshe Viewpoint offre la plus belle vue sur la baie. Une seule nuit — hôtel déjà choisi, donc peu de logistique.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">KRABI · J14–J18</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🧗 Krabi</h3>
+          <span class="phase-nights">5 nuits</span>
+        </div>
+        <div class="phase-dates">2–6 mars · J14–J18</div>
+        <div class="phase-base"><strong>Base :</strong> Ao Nang — accès facile aux plages, bateaux et excursions</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J14</td><td>2 mars · Mar</td><td>🚗 Transfert Phang Nga → Ao Nang (~1h30) · installation · plage d'Ao Nang · coucher du soleil</td><td>Arrivée tranquille, pas d'excursion ce jour-là</td></tr>
+              <tr><td>J15</td><td>3 mars · Mer</td><td>🏝️ Hong Islands (island hopping, lagon, snorkeling)</td><td>Partir tôt pour éviter les groupes</td></tr>
+              <tr><td>J16</td><td>4 mars · Jeu</td><td>🚤 Railay Beach (falaises, escalade) + Phra Nang Beach (grotte de la princesse) en longtail boat</td><td>Railay accessible uniquement par bateau · Phra Nang à 10 min à pied depuis Railay Est</td></tr>
+              <tr><td>J17</td><td>5 mars · Ven</td><td>🐯 Tiger Cave Temple (1237 marches, vue panoramique) à l'aube · après-midi Emerald Pool <em>ou</em> Dragon Crest Trail · option : kayak dans la mangrove</td><td>Montée très tôt (chaleur) · choisir selon la météo et l'énergie</td></tr>
+              <tr><td>J18</td><td>6 mars · Sam</td><td>🌴 Vraie journée de détente : plage, piscine, massage · aucun réveil · préparation du sac pour les îles</td><td>Journée volontairement vide · dernière nuit avant Koh Phi Phi</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Krabi = camp de base parfait entre falaises, plages et excursions. Railay et Phra Nang se rejoignent en longtail boat. Hong Islands et Tiger Cave Temple sont les incontournables. Le J18 est gardé libre pour souffler entre les excursions.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">KOH PHI PHI · J19–J21</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🐠 Koh Phi Phi</h3>
+          <span class="phase-nights">3 nuits</span>
+        </div>
+        <div class="phase-dates">7–9 mars · J19–J21</div>
+        <div class="phase-base"><strong>Base :</strong> Koh Phi Phi Don — la seule île habitée de l'archipel (loin de la zone des fêtes)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J19</td><td>7 mars · Dim</td><td>⛴️ Ferry Krabi → Koh Phi Phi · installation · Long Beach · coucher du soleil</td><td>Ferry ~1h30–2h</td></tr>
+              <tr><td>J20</td><td>8 mars · Lun</td><td>🌅 Maya Bay tôt le matin · Pileh Lagoon · snorkeling · Phi Phi Viewpoint au coucher</td><td>Maya Bay à l'ouverture pour éviter la foule · vérifier fermetures saisonnières</td></tr>
+              <tr><td>J21</td><td>9 mars · Mar</td><td>🏖️ Détente sur l'île · snorkeling libre · Long Beach · dernière soirée sur l'île</td><td>Dernière nuit sur Koh Phi Phi</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Maya Bay tôt le matin (ouverture) pour la photo sans foule — vérifier les éventuelles fermetures saisonnières de la baie. Le lendemain (10 mars) : ferry retour vers Krabi et nuit tampon, sans vol le même jour.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">KRABI · J22 · NUIT TAMPON</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🧳 Krabi</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">10 mars · J22 · nuit tampon avant le vol</div>
+        <div class="phase-base"><strong>Base :</strong> Krabi ville ou Ao Nang, selon l'heure du vol du lendemain (aéroport à ~20-30 min)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J22</td><td>10 mars · Mer</td><td>⛴️ Ferry Koh Phi Phi → Krabi · installation · soirée tranquille · préparation des bagages</td><td>Pas de vol ce jour-là : jamais de ferry et de vol le même jour</td></tr>
+              <tr><td>—</td><td>11 mars · Jeu</td><td>✈️ Vol Krabi → Hô Chi Minh-Ville (souvent avec escale à Bangkok) · début du Vietnam</td><td>e-visa Vietnam à avoir en poche</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Cette nuit tampon est à conserver : un retard de ferry (mer agitée) ne peut plus faire rater le vol vers le Vietnam.
+        </div>
+      </article>
+
+    </div>
+
+    <aside class="rail">
+      <div class="trip-map-container" id="map-thailand" role="img" aria-label="Carte du trajet en Thaïlande avec 7 étapes"></div>
+      <div class="practical">
+        <h3>Infos pratiques</h3>
+        <ul>
+          <li>✈️ <span>Vol Zurich → Bangkok (16 fév · 20h00) · 2 vols internes</span></li>
+          <li>💴 <span>Baht (฿) — cash pour marchés &amp; îles</span></li>
+          <li>📱 <span>Grab, Bolt, Google Maps · e-SIM à l'arrivée</span></li>
+          <li>🌫️ <span>Burning season nord — surveiller l'AQI (fév-mars)</span></li>
+          <li>🛕 <span>Tenue couvrante obligatoire dans les temples</span></li>
+        </ul>
+      </div>
+      <div class="checklist" data-country="thailand">
+        <h3>✅ Checklist Thaïlande</h3>
+        <div class="check-group">
+          <div class="check-group-head">🔴 Critique (avant départ)</div>
+          <label class="check-item"><input type="checkbox" data-id="th-vol-intl"><span>Vol Zurich → Bangkok (16 fév · 20h00)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-vol-cnx"><span>Vol Bangkok → Chiang Mai (matin J5)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-vol-urt"><span>Vol Chiang Rai → Surat Thani (vérifier escale BKK)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-vol-vn"><span>Vol Krabi → Hô Chi Minh-Ville (11 mars)</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟡 Réservations 1-2 mois avant</div>
+          <label class="check-item"><input type="checkbox" data-id="th-elephant"><span>Sanctuaire d'éléphants éthique (no-riding)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-floating"><span>Bungalow flottant lac Cheow Lan (Khao Sok)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-phangnga-hotel"><span>Hôtel coup de cœur Phang Nga</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-ferry-phiphi"><span>Ferry Krabi ↔ Koh Phi Phi (7 et 10 mars)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-khaosok-hotel"><span>Hôtel Khao Sok Village, nuit du 27 fév (Hotel Khao Sok &amp; Spa, Montania ou Jasmine Garden)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-krabi-buffer"><span>Hôtel nuit tampon à Krabi (10 mars)</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟢 Avant le départ</div>
+          <label class="check-item"><input type="checkbox" data-id="th-esim"><span>e-SIM Thaïlande (AIS/dtac)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-grab"><span>App Grab installée</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-aqi"><span>Vérifier l'AQI Chiang Mai/Rai (burning season)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="th-cash"><span>Change / retrait baht à l'arrivée</span></label>
+        </div>
+        <div class="progress"><div class="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label"><span class="progress-count">0</span>/<span class="progress-total">12</span> complétés</div>
+      </div>
+    </aside>
+  </div>
+</div>
+    </section>
+    <section id="vietnam"   class="country-section section-vn">
+<div class="container">
+  <header class="section-header">
+    <h2 class="section-title">🇻🇳 Vietnam</h2>
+    <p class="section-subtitle">11 mars → 1er avril 2027 · 21 nuits · 7 étapes (sud → nord)</p>
+  </header>
+
+  <div class="banner">
+    <img data-slug="vn-banner" data-label="Vietnam · Bannière (Baie de Lan Ha)" src="https://source.unsplash.com/featured/1600x400/?halong,lan-ha,bay,karst" alt="Baie de Lan Ha">
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">21</div><div class="stat-lab">Nuits</div></div>
+    <div class="stat"><div class="stat-num">7</div><div class="stat-lab">Étapes</div></div>
+    <div class="stat"><div class="stat-num">2</div><div class="stat-lab">Nuits croisière</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-lab">Bus de nuit</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-lab">Vol interne</div></div>
+  </div>
+
+  <div class="gallery" aria-label="Galerie Vietnam">
+    <div class="gallery-item"><img data-slug="vn-gal-hcmc" data-label="Vietnam · Galerie Hô Chi Minh-Ville" src="https://source.unsplash.com/featured/400x260/?ho-chi-minh-city,saigon" alt="" loading="lazy"><span>Hô Chi Minh-Ville</span></div>
+    <div class="gallery-item"><img data-slug="vn-gal-mekong" data-label="Vietnam · Galerie Delta du Mékong" src="https://source.unsplash.com/featured/400x260/?mekong,delta,boat" alt="" loading="lazy"><span>Delta du Mékong</span></div>
+    <div class="gallery-item"><img data-slug="vn-gal-hoian" data-label="Vietnam · Galerie Hoi An lanternes" src="https://source.unsplash.com/featured/400x260/?hoi-an,lanterns" alt="" loading="lazy"><span>Hoi An · lanternes</span></div>
+    <div class="gallery-item"><img data-slug="vn-gal-phongnha" data-label="Vietnam · Galerie Phong Nha grottes" src="https://source.unsplash.com/featured/400x260/?phong-nha,cave" alt="" loading="lazy"><span>Phong Nha</span></div>
+    <div class="gallery-item"><img data-slug="vn-gal-ninhbinh" data-label="Vietnam · Galerie Tam Coc / Ninh Binh" src="https://source.unsplash.com/featured/400x260/?ninh-binh,tam-coc,trang-an" alt="" loading="lazy"><span>Tam Coc · Trang An</span></div>
+    <div class="gallery-item"><img data-slug="vn-gal-puluong" data-label="Vietnam · Galerie Pu Luong rizières" src="https://source.unsplash.com/featured/400x260/?pu-luong,rice-terraces" alt="" loading="lazy"><span>Pu Luong · rizières</span></div>
+    <div class="gallery-item"><img data-slug="vn-gal-hanoi" data-label="Vietnam · Galerie Hanoï vieux quartier" src="https://source.unsplash.com/featured/400x260/?hanoi,old-quarter" alt="" loading="lazy"><span>Hanoï</span></div>
+    <div class="gallery-item"><img data-slug="vn-gal-lanha" data-label="Vietnam · Galerie Baie de Lan Ha croisière" src="https://source.unsplash.com/featured/400x260/?lan-ha-bay,cruise,junk" alt="" loading="lazy"><span>Baie de Lan Ha</span></div>
+  </div>
+
+  <div class="body-grid">
+    <div class="phases">
+
+      <article class="phase">
+        <span class="phase-badge">HÔ CHI MINH · J1–J3</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🏙️ Hô Chi Minh-Ville</h3>
+          <span class="phase-nights">3 nuits</span>
+        </div>
+        <div class="phase-dates">11–13 mars · J1–J3</div>
+        <div class="phase-base"><strong>Base :</strong> District 1 — centre historique, cafés, rooftops et street food à pied</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J1</td><td>11 mars · Jeu</td><td>✈️ Arrivée depuis Krabi (Thaïlande) · installation · première découverte de la ville · street food + café vietnamien</td><td>Vol via correspondance probable · e-visa Vietnam à faire avant</td></tr>
+              <tr><td>J2</td><td>12 mars · Ven</td><td>🏛️ Palais de la Réunification · Musée des vestiges de guerre · marché Ben Thanh · rooftops le soir</td><td>Musée des vestiges de guerre = incontournable mais éprouvant</td></tr>
+              <tr><td>J3</td><td>13 mars · Sam</td><td>🚤 Excursion à la journée dans le delta du Mékong (marché flottant, sampans, vergers)</td><td>Journée complète · retour le soir à Saigon</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          e-visa Vietnam à demander en ligne avant le départ. Le delta du Mékong se fait en excursion à la journée depuis Saigon. Le lendemain (J4) : vol vers Da Nang puis transfert Hoi An.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">HOI AN · J4–J7</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🏮 Hoi An</h3>
+          <span class="phase-nights">4 nuits</span>
+        </div>
+        <div class="phase-dates">14–17 mars · J4–J7</div>
+        <div class="phase-base"><strong>Base :</strong> proche vieille ville ou plage d'An Bang — vélo pour tout relier</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J4</td><td>14 mars · Dim</td><td>✈️ Vol Hô Chi Minh → Da Nang (~1h20) · transfert Hoi An (~45–60 min) · vieille ville et lanternes le soir</td><td>Vieille ville magique à la tombée de la nuit</td></tr>
+              <tr><td>J5</td><td>15 mars · Lun</td><td>🧵 Vêtements sur mesure (tailleurs) · shopping · vieille ville · balade en barque sur la rivière Thu Bồn</td><td>Commander les vêtements tôt pour les essayages / retouches</td></tr>
+              <tr><td>J6</td><td>16 mars · Mar</td><td>🏖️ Plage d'An Bang · vélo dans les rizières · après-midi détente / massage</td><td>Vélo = le meilleur moyen de tout relier</td></tr>
+              <tr><td>J7</td><td>17 mars · Mer</td><td>👨‍🍳 Cours de cuisine · derniers essayages tailleur · cafés · dernière soirée aux lanternes</td><td>Récupérer les vêtements sur mesure avant le départ</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Commander les vêtements sur mesure dès le J5 pour avoir le temps des retouches. Vélo idéal pour relier vieille ville, rizières et plage. Le J8 est une grosse journée de route vers Phong Nha (~6–8h en minivan, ou train via Da Nang/Dong Hoi).
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">PHONG NHA · J8–J9</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🕳️ Phong Nha</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">18–19 mars · J8–J9 · + journée du J10 avant le bus de nuit</div>
+        <div class="phase-base"><strong>Base :</strong> village de Phong Nha — cœur du parc national et des grottes</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J8</td><td>18 mars · Jeu</td><td>🚐 Minivan/bus Hoi An → Phong Nha (~6–8h) · installation · fin de journée nature</td><td>Alternative : train via Da Nang & Dong Hoi · longue journée de transport</td></tr>
+              <tr><td>J9</td><td>19 mars · Ven</td><td>🕳️ Paradise Cave · Phong Nha Cave (en barque) · parc national & paysages karstiques</td><td>Paradise Cave = immense · prévoir bonnes chaussures</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Paradise Cave et Phong Nha Cave sont les deux grottes phares (accessibles sans expédition). Le J10 (20 mars) reste sur place jusqu'au bus de nuit de 23h vers Tam Coc : demander un late check-out ou une consigne.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">BUS DE NUIT · J10</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🌙 Bus de nuit</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">20 mars · J10 · Phong Nha → Tam Coc</div>
+        <div class="phase-base"><strong>Base :</strong> couchette de bus de nuit (sleeper bus) — 1 nuit sans hôtel</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J10</td><td>20 mars · Sam</td><td>🌿 Journée libre à Phong Nha (vélo le long de la rivière, Dark Cave ou repos) · 🚌 bus de nuit Phong Nha → Tam Coc · départ ~23h00 · arrivée ~6h30</td><td>Sleeper bus = 1 nuit économisée en hôtel · prévoir masque, écouteurs, petites affaires à portée</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Le sleeper bus fait office de nuit : arrivée très tôt à Tam Coc le J11, donc prévoir un check-in flexible / dépôt bagages. Confort variable — c'est le côté aventure de l'itinéraire.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">TAM COC · J11–J13</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🚣 Tam Coc</h3>
+          <span class="phase-nights">3 nuits</span>
+        </div>
+        <div class="phase-dates">21–23 mars · J11–J13</div>
+        <div class="phase-base"><strong>Base :</strong> Tam Coc — la « baie d'Ha Long terrestre », à vélo entre rizières et pitons (province de Ninh Binh)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J11</td><td>21 mars · Dim</td><td>🌅 Arrivée du bus de nuit (~6h30) · repos / check-in · Trang An en barque l'après-midi (site UNESCO, grottes & temples)</td><td>Trang An = circuit en barque le plus spectaculaire · dimanche = plus de monde, y aller après 14h</td></tr>
+              <tr><td>J12</td><td>22 mars · Lun</td><td>🚣 Tam Coc en barque le matin · Mua Cave (~500 marches, vue panoramique) au coucher</td><td>Mua Cave tôt ou en fin de journée (chaleur + foule)</td></tr>
+              <tr><td>J13</td><td>23 mars · Mar</td><td>🛕 Pagode Bich Dong · balades à vélo dans les rizières · villages</td><td>Journée plus douce à vélo</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Trang An (UNESCO) et Tam Coc = deux circuits en barque complémentaires. Mua Cave pour la vue panoramique sur les méandres. Le J14 : minivan direct vers Pu Luong (~3-4h).
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">PU LUONG · J14–J16</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🌾 Pu Luong</h3>
+          <span class="phase-nights">3 nuits</span>
+        </div>
+        <div class="phase-dates">24–26 mars · J14–J16</div>
+        <div class="phase-base"><strong>Base :</strong> éco-lodge dans la réserve — rizières en terrasses, montagnes et villages</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J14</td><td>24 mars · Mer</td><td>🚐 Minivan direct Tam Coc → Pu Luong (~3-4h) · installation en lodge · fin de journée dans les rizières</td><td>Choisir un lodge avec piscine face aux terrasses</td></tr>
+              <tr><td>J15</td><td>25 mars · Jeu</td><td>🥾 Randonnée guidée entre villages thaïs et rizières en terrasses · roues à eau · paysages de montagne</td><td>Le cœur de l'étape</td></tr>
+              <tr><td>J16</td><td>26 mars · Ven</td><td>🌿 Journée détente : radeau de bambou sur la rivière Cham ou vélo, cascade de Hieu, piscine du lodge</td><td>Étape nature / repos avant Hanoï</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Pu Luong = respiration nature loin des foules, entre rizières en terrasses et villages thaïs. En mars, les rizières sont en eau ou en jeunes pousses (le vert intense, c'est plutôt mai-juin et septembre). Le J17 : minivan/limousine vers Hanoï (~4–5h).
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">HANOÏ + LAN HA · J17–J21</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🛵 Hanoï &amp; Baie de Lan Ha</h3>
+          <span class="phase-nights">5 nuits</span>
+        </div>
+        <div class="phase-dates">27–31 mars · J17–J21 · dont 2 nuits en croisière</div>
+        <div class="phase-base"><strong>Base :</strong> Vieux quartier de Hanoï · croisière au départ de la baie de Lan Ha (moins touristique qu'Ha Long)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J17</td><td>27 mars · Sam</td><td>🚐 Minivan Pu Luong → Hanoï (~4–5h) · vieux quartier · lac Hoàn Kiếm (piéton le week-end au soir) · egg coffee · street food</td><td>Installation Hanoï (2 nuits avant croisière)</td></tr>
+              <tr><td>J18</td><td>28 mars · Dim</td><td>🏯 Temple de la Littérature · Train Street · shopping · derniers préparatifs avant la croisière</td><td>Transfert croisière organisé pour le lendemain</td></tr>
+              <tr><td>J19</td><td>29 mars · Lun</td><td>⛵ Transfert + embarquement croisière baie de Lan Ha · kayak · grottes · coucher du soleil · nuit à bord</td><td>Lan Ha = plus calme et sauvage qu'Ha Long</td></tr>
+              <tr><td>J20</td><td>30 mars · Mar</td><td>🌅 Lever de soleil en baie · Tai Chi sur le pont · exploration karstique · 2ᵉ nuit à bord</td><td>Le cœur de l'expérience croisière</td></tr>
+              <tr><td>J21</td><td>31 mars · Mer</td><td>🚐 Retour à Hanoï (transfert croisière) · derniers cafés & shopping · dernier dîner vietnamien · nuit de sécurité avant le vol</td><td>1 nuit à Hanoï avant le vol international</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Croisière au départ de <strong>Lan Ha</strong> plutôt qu'Ha Long : plus calme, moins de bateaux. Prévoir la « nuit de sécurité » à Hanoï le J21 avant le vol — jamais de croisière la veille d'un vol international. Le 1er avril : vol Hanoï → Japon (arrivée Tokyo, début de l'étape japonaise).
+        </div>
+      </article>
+
+    </div>
+
+    <aside class="rail">
+      <div class="trip-map-container" id="map-vietnam" role="img" aria-label="Carte du trajet au Vietnam avec 7 étapes sud-nord"></div>
+      <div class="practical">
+        <h3>Infos pratiques</h3>
+        <ul>
+          <li>✈️ <span>Vol HCMV → Da Nang · vol Hanoï → Japon (1er avril)</span></li>
+          <li>💴 <span>Dông (₫) — cash roi · petites coupures utiles</span></li>
+          <li>📱 <span>e-visa Vietnam obligatoire · Grab · e-SIM</span></li>
+          <li>🚌 <span>Bus de nuit + minivans entre étapes</span></li>
+          <li>⛵ <span>Croisière Lan Ha (moins touristique qu'Ha Long)</span></li>
+        </ul>
+      </div>
+      <div class="checklist" data-country="vietnam">
+        <h3>✅ Checklist Vietnam</h3>
+        <div class="check-group">
+          <div class="check-group-head">🔴 Critique (avant départ)</div>
+          <label class="check-item"><input type="checkbox" data-id="vn-evisa"><span>e-visa Vietnam (demande en ligne à l'avance)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-vol-dad"><span>Vol Hô Chi Minh → Da Nang (~1h20)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-vol-jp"><span>Vol Hanoï → Japon (1er avril)</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟡 Réservations 1-2 mois avant</div>
+          <label class="check-item"><input type="checkbox" data-id="vn-cruise"><span>Croisière baie de Lan Ha (2 nuits)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-nightbus"><span>Bus de nuit Phong Nha → Tam Coc (20 mars)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-puluong"><span>Éco-lodge Pu Luong</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-hoian-tailor"><span>Repérer un tailleur à Hoi An</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-hanoi-safety"><span>Nuit de sécurité à Hanoï (J21) avant le vol</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟢 Avant le départ</div>
+          <label class="check-item"><input type="checkbox" data-id="vn-esim"><span>e-SIM Vietnam</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-grab"><span>App Grab installée</span></label>
+          <label class="check-item"><input type="checkbox" data-id="vn-cash"><span>Retrait dôngs / petites coupures</span></label>
+        </div>
+        <div class="progress"><div class="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label"><span class="progress-count">0</span>/<span class="progress-total">11</span> complétés</div>
+      </div>
+    </aside>
+  </div>
+</div>
+    </section>
+    <section id="japan"     class="country-section section-japan">
+<div class="container">
+  <header class="section-header">
+    <h2 class="section-title">🇯🇵 Japon</h2>
+    <p class="section-subtitle">1er → 30 avril 2027 · 29 nuits · 14 étapes · vers Busan le 30 avril</p>
+  </header>
+
+  <div class="banner">
+    <img data-slug="jp-banner" data-label="Japon · Bannière (Tokyo)" src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1600&q=80" alt="Tokyo la nuit">
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">29</div><div class="stat-lab">Nuits</div></div>
+    <div class="stat"><div class="stat-num">14</div><div class="stat-lab">Étapes</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-lab">Shinkansen à réserver</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-lab">UNESCO majeurs</div></div>
+    <div class="stat"><div class="stat-num">6</div><div class="stat-lab">Nuits ryokan/temple</div></div>
+  </div>
+
+  <div class="gallery" aria-label="Galerie Japon">
+    <div class="gallery-item"><img data-slug="jp-gal-tokyo" data-label="Japon · Galerie Tokyo" src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Tokyo</span></div>
+    <div class="gallery-item"><img data-slug="jp-gal-fuji" data-label="Japon · Galerie Kawaguchiko/Fuji" src="https://images.unsplash.com/photo-1490761668535-35497054764b?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Kawaguchiko</span></div>
+    <div class="gallery-item"><img data-slug="jp-gal-kanazawa" data-label="Japon · Galerie Kanazawa" src="https://images.unsplash.com/photo-1747547665435-299b2f28a028?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Kanazawa</span></div>
+    <div class="gallery-item"><img data-slug="jp-gal-kyoto" data-label="Japon · Galerie Kyoto" src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Kyoto</span></div>
+    <div class="gallery-item"><img data-slug="jp-gal-nara" data-label="Japon · Galerie Nara" src="https://images.unsplash.com/photo-1723569199334-c702187819e0?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Nara</span></div>
+    <div class="gallery-item"><img data-slug="jp-gal-osaka" data-label="Japon · Galerie Osaka" src="https://images.unsplash.com/photo-1565117082819-e40a7fddfd85?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Osaka</span></div>
+    <div class="gallery-item"><img data-slug="jp-gal-miyajima" data-label="Japon · Galerie Miyajima" src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Miyajima</span></div>
+  </div>
+
+  <div class="body-grid">
+    <div class="phases">
+
+      <article class="phase">
+        <span class="phase-decor">東</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🗼 Tokyo</h3>
+          <span class="phase-nights">6 nuits</span>
+        </div>
+        <div class="phase-dates">1er → 6 avril · J1–J6 · pleine floraison des cerisiers</div>
+        <div class="phase-base"><strong>Base :</strong> Shinjuku / Shibuya — JR Yamanote line, accès direct tout Tokyo</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J1</td><td>1 avril · Jeu</td><td>✈️ Arrivée depuis Hanoï · Narita Express ou Limousine Bus → Shinjuku (~1h30) · Check-in · Balade quartier · Ramen de nuit</td><td>Journée légère (vol de nuit ou jet lag). Narita Express ~3 250 ¥, payé avec la carte Suica</td></tr>
+              <tr><td>J2</td><td>2 avril · Ven</td><td>🌅 Senso-ji à l'aube (Asakusa, avant 6h30 — vide) · Ueno parc sakura · Akihabara après-midi (arcades, électronique, manga)</td><td>Ueno en pleine floraison : un jour de semaine, surtout pas le week-end. Senso-ji ouvert 24h/24</td></tr>
+              <tr><td>J3</td><td>3 avril · Sam</td><td>Yanaka matin (vieux quartier artisans, ruelles, cimetière sakura) · Shimokitazawa après-midi (bohème, vinyles, cafés, sakura) · Dîner de quartier</td><td>Quartiers de village : parfaits un samedi, loin des foules des grands parcs</td></tr>
+              <tr><td>J4</td><td>4 avril · Dim</td><td>🌅 Meiji Jingu avant 8h (forêt de cryptomères, sanctuaire shintō) · Harajuku Takeshita-dori · Omotesando · Shibuya Scramble crossing · Omoide Yokocho soir (yakitori, ruelles années 50)</td><td>Le dimanche, Harajuku est au plus animé. Meiji : arriver avant 8h pour le calme</td></tr>
+              <tr><td>J5</td><td>5 avril · Lun</td><td>🚆 Excursion Nikkō — départ 7h30 · Tokyo → Nikkō ~2h · Tōshō-gū UNESCO (laque or/rouge) · Lac Chūzenji · Cascades Kegon 97m · Retour soir</td><td>Lundi = peu de monde. ~¥2,700 A/R. ⚠️ Éviter absolument le week-end</td></tr>
+              <tr><td>J6</td><td>6 avril · Mar</td><td>Tsukiji marché extérieur matin · teamLab Borderless Azabudai Hills · Roppongi soir (Mori Tower Sky Deck, bars)</td><td>Tsukiji : beaucoup d'échoppes fermées le mercredi et le dimanche, le mardi est idéal. ⚠️ teamLab : réserver 2-3 mois à l'avance (¥3,600-5,600)</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Arrivée en pleine floraison des cerisiers : hôtels de Tokyo plus chers, à réserver tôt. teamLab Borderless : réserver 2-3 mois à l'avance. Nikkō un lundi, jamais le week-end. Meiji Jingu / Senso-ji : y aller avant l'aube pour éviter la foule. Narita Express payé avec la carte Suica (~3 250 ¥).
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">富</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🗻 Kawaguchiko</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">7–8 avril · J7–J8</div>
+        <div class="phase-base"><strong>Base :</strong> Kawaguchiko — rive nord (vue frontale Fuji, ryokans avec onsen face au mont)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J7</td><td>7 avril · Mer</td><td>Matinée libre à Tokyo (Shinjuku Gyoen en fleurs, fermé seulement le lundi) · 🚌 Départ soir bus Tokyo → Kawaguchiko (Keio Bus Shinjuku, ~2h, ~¥1,800, départ ~18h) · Arrivée ~20h · Check-in ryokan rive nord</td><td>Réserver le bus à l'avance · bagages en consigne à Shinjuku pour la journée</td></tr>
+              <tr><td>J8</td><td>8 avril · Jeu</td><td>🌅 Chureito Pagoda à l'aube (pagode rouge + Fuji + cerisiers, 398 marches — avant 6h) · Tour du lac Kawaguchi · Onsen ryokan matin · Fuji-Q Highland après-midi OU journée entière</td><td>✅ Jeudi = files courtes. Ouvre 9h. Cerisiers du lac en général au top début-mi-avril</td></tr>
+              <tr><td>J9</td><td>9 avril · Ven</td><td>🎢 Fuji-Q Highland journée entière si pas fait J8 / dernière matinée lac · Départ bus → Matsumoto (~2h, Alpico Bus, ~¥3,000)</td><td>⚠️ Aucun train direct Kawaguchiko → Matsumoto. Bus Alpico uniquement — réserver à l'avance. Arrivée Matsumoto ~14h</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Bus Keio Shinjuku → Kawaguchiko : réserver à l'avance. Chureito Pagoda à l'aube, avant 6h : c'est la période des cerisiers, donc du monde. Un jour de semaine pour Fuji-Q Highland (files courtes). Bus Alpico = seule option vers Matsumoto, pas de train direct.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">松</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🏯 Matsumoto</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">9 avril · J9 soir</div>
+        <div class="phase-base"><strong>Base :</strong> Centre-ville de Matsumoto, à proximité du château (Matsumoto-jō)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J9 soir</td><td>9 avril · Ven</td><td>Arrivée bus ~14h · Matsumoto-jō (château des corbeaux, douves, carpes — le plus authentique du Japon) · vieille ville Nawate-dori</td><td>1 nuit Matsumoto · cerisiers autour des douves en général au top vers le 10 avril</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Matsumoto-jō : le château le plus authentique du Japon (structure d'origine, "château des corbeaux"). Une seule nuit avant de repartir vers Takayama.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">高</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🏘️ Takayama</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">10–11 avril · J10–J11</div>
+        <div class="phase-base"><strong>Base :</strong> Centre de Takayama, près de Sanmachi-suji (vieille ville marchande Edo)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J10</td><td>10 avril · Sam</td><td>Matin libre Matsumoto · 🚌 Bus Matsumoto → Takayama (~2h30 via Hirayu) · Arrivée ~13h · Sanmachi-suji (sake, miso, maisons noires Edo) · dîner Hida beef</td><td>2 nuits Takayama. Pas de train direct : bus Alpico/Nōhi à réserver (horaires à vérifier) · samedi = réserver le bus tôt</td></tr>
+              <tr><td>J11</td><td>11 avril · Dim</td><td>🌅 Jinya-mae Asaichi marché 6h-12h · Takayama Jinya (préfecture Edo, seule survivante au Japon) · Hida Folk Village après-midi (musée plein air, maisons gasshō, montagne) · chars du festival au Yatai Kaikan</td><td>Marché : arriver 6h pour les locaux. Folk Village ~20 min à pied depuis centre</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Matsumoto → Takayama en bus via Hirayu (pas de train direct). Marché Jinya-mae Asaichi dès 6h pour croiser les locaux. Takayama Jinya = seule préfecture d'époque Edo encore debout au Japon. Le festival de printemps (Sannō matsuri) a lieu les 14-15 avril, après notre départ : ses chars sont exposés toute l'année au Yatai Kaikan.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">金</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🌿 Kanazawa</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">12–13 avril · J12–J13</div>
+        <div class="phase-base"><strong>Base :</strong> Centre-ville de Kanazawa, proche Kenroku-en et du quartier samouraï Nagamachi</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J12</td><td>12 avril · Lun</td><td>Shirakawa-go → Kanazawa : 🚌 Bus Takayama → Shirakawa-go (~50 min, ~¥1,900) · Village UNESCO gasshō-zukuri + belvédère Shiroyama avant 9h · Bus → Kanazawa (~1h15) · Arrivée soir</td><td>⚠️ Bus Shirakawa-go → Kanazawa : horaires peu fréquents, réserver. Belvédère avant 9h = sans foule. Lundi = moins de cars qu'un week-end. 2 nuits Kanazawa</td></tr>
+              <tr><td>J13</td><td>13 avril · Mar</td><td>Kenroku-en matin (un des 3 plus beaux jardins du Japon, ouvre 7h) · Nagamachi (quartier samouraï, murs d'argile) · Omicho Market midi (crabes, sashimi debout) · Musée d'art contemporain 21e siècle (Leandro Erlich)</td><td>Kenroku-en : arriver à 7h. Musée 21e siècle fermé le lundi → mardi OK (architecture circulaire, piscine traversable)</td></tr>
+              <tr><td>J14</td><td>14 avril · Mer</td><td>Kanazawa → Kyoto : Matin fin visite Kanazawa · 🚆 Shinkansen + Thunderbird Kanazawa → Kyoto (~2h15 via Tsuruga, billet réservé en ligne) · Départ ~15h · Arrivée ~17h · Check-in Kawaramachi · Nishiki Market si encore ouvert · Gion le soir à pied</td><td>Nishiki ferme ~18h (beaucoup d'échoppes fermées le mercredi). Gion = balade libre, observer sans photographier les geiko</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Kenroku-en dès l'ouverture 7h (un des 3 plus beaux jardins du Japon). Bus Shirakawa-go → Kanazawa peu fréquent, réserver. Belvédère Shiroyama avant 9h pour éviter la foule.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">京</span>
+        <div class="phase-head">
+          <h3 class="phase-name">⛩️ Kyoto</h3>
+          <span class="phase-nights">6 nuits</span>
+        </div>
+        <div class="phase-dates">14–19 avril · J14–J19</div>
+        <div class="phase-base"><strong>Base :</strong> Kawaramachi / Shijo — Gion 10 min à pied, 2 lignes métro</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J15</td><td>15 avril · Jeu</td><td>🌅 Kiyomizu-dera avant 6h30 (terrasse bois sur pilotis, vue sur Kyoto) · Sannenzaka + Ninenzaka (ruelles pavées, matcha, céramiques) · Higashiyama à pied (Chion-in, Shoren-in) · Gion soir (Hanamikoji, lanternes, maisons de thé)</td><td>Jour de semaine = moins bondé. Kiyomizu avant 6h30 = vide. Ouvre officiellement 6h</td></tr>
+              <tr><td>J16</td><td>16 avril · Ven</td><td>🌅 Arashiyama — bambouseraie Sagano avant 7h (silence, lumière filtrée, aucune foule) · Tenryu-ji jardin zen (ouvre 8h30) · Okochi Sanso villa samouraï + thé matcha inclus · Bateau sur Oi-gawa (~30 min) · Retour à pied rivière</td><td>⚠️ Bambouseraie : après 10h = intenable. Avant 7h = expérience totalement différente. En semaine, avant le week-end</td></tr>
+              <tr><td>J17</td><td>17 avril · Sam</td><td>🌅 Fushimi Inari 5h30 (milliers de torii orange, vide avant 7h) · Monter jusqu'à Yotsutsuji (~40 min) pour la vue · Tofuku-ji après (jardin zen Hojo, pont Tsuten-kyo) · Après-midi libre (Nishiki, Pontocho)</td><td>Ouvert 24h/24. À l'aube, le samedi ne change rien. ⚠️ Bondé après 9h</td></tr>
+              <tr><td>J18</td><td>18 avril · Dim</td><td>Kinkaku-ji matin tôt (pavillon d'or, reflet étang — ouvre 9h, être là à 9h pile) · Ryōan-ji (jardin de 15 pierres, jamais toutes visibles depuis un point) · Chemin de la Philosophie après-midi (canal, Eikan-do) · Ginkaku-ji en bout de chemin</td><td>Dimanche = monde : enchaîner Kinkaku-ji → Ryōan-ji à pied (15 min). Bus de touristes dès 9h30 — ponctualité critique</td></tr>
+              <tr><td>J19</td><td>19 avril · Lun</td><td>🦌 Excursion Nara — 🚆 Kyoto → Nara (~50 min, carte Suica) · Tōdai-ji à l'ouverture 8h (Grand Bouddha bronze 15m, plus grand bâtiment bois du monde) · Cerfs libres dans le parc (crackers shika sembei) · Kasuga Taisha (3,000 lanternes de pierre) · Naramachi quartier Edo · Retour soir</td><td>Lundi = peu de monde (le musée national de Nara est fermé, mais Tōdai-ji et Kasuga sont ouverts). Arriver Tōdai-ji à 8h pile</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Mi-avril, les cerisiers de Kyoto sont en fin de floraison (les variétés tardives, comme au Ninna-ji, fleurissent encore). Fushimi Inari dès 5h30 (bondé après 9h). Kinkaku-ji : être à l'ouverture 9h pile. Arashiyama bambouseraie impérativement avant 7h. Excursion Nara (J19) payée avec la carte Suica (~720 ¥ par trajet).
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">大</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🐙 Osaka</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">20–21 avril · J20–J21</div>
+        <div class="phase-base"><strong>Base :</strong> Namba (2-3 rues en retrait de Dotonbori)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J20</td><td>20 avril · Mar</td><td>🚆 Kyoto → Himeji (Shinkansen, ~45 min, billet réservé en ligne) · Château d'Himeji à l'ouverture 9h (UNESCO, le plus beau château du Japon, 6 étages, blanc) · Koko-en jardins attenants · 🚆 Himeji → Osaka (~1h en Special Rapid, carte Suica) · Arrivée ~15h · Check-in Namba · Dotonbori soir (takoyaki Wanaka, okonomiyaki, Glico man)</td><td>Mardi = Himeji calme, arriver à 9h pile quand même. Hozenji Yokocho après Dotonbori</td></tr>
+              <tr><td>J21</td><td>21 avril · Mer</td><td>Château d'Osaka matin (arriver 9h) · Kuromon Ichiba midi (580 stands, wagyu, thon, huîtres) · Après-midi : Shinsekai (rétro années 30, kushikatsu, Tsutenkaku)</td><td>En semaine, tous les stands de Kuromon sont ouverts. Option : Umeda Sky Building ou Amemura</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Himeji à l'ouverture 9h pile (UNESCO, plus beau château du Japon). Osaka en semaine : Kuromon Ichiba complet et château moins bondé.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">高</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🌸 Koyasan</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">22 avril · J22</div>
+        <div class="phase-base"><strong>Base :</strong> Shukubo (hébergement dans un temple, repas shōjin-ryōri végétariens)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J22</td><td>22 avril · Jeu</td><td>🚆 Osaka Namba → Gokurakubashi (Nankai Railway, ~1h30, billet World Heritage ~¥3,080 A/R, bus inclus) · 🚡 Funiculaire (5 min) · 🚌 Bus village · Arrivée début d'après-midi · Okunoin (cimetière de mousse et cèdres millénaires, 200,000 tombes samouraïs, lanternes) · Danjo Garan (Grande Pagode rouge, Konpon Daito) · Okunoin de nuit (lanternes, brume, silence absolu) · Repas shōjin-ryōri au shukubo</td><td>⚠️ Prendre le billet World Heritage Nankai (~¥3,080 A/R, bus inclus). Okunoin de nuit = expérience unique, ne pas rater</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Réserver le shukubo 3-4 mois à l'avance — places très limitées. Billet World Heritage Nankai (~¥3,080 A/R, bus inclus). Départ matin (J23) : cérémonie 5h30, Okunoin à l'aube, transit vers Hiroshima ~15h.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">広</span>
+        <div class="phase-head">
+          <h3 class="phase-name">☮️ Hiroshima</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">23 avril · J23</div>
+        <div class="phase-base"><strong>Base :</strong> Naka-ku, à proximité du Parc du Mémorial de la Paix</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J23</td><td>23 avril · Ven</td><td>Arrivée ~15h · Parc du Mémorial de la Paix (Genbaku Dome UNESCO, cénotaphe, flamme éternelle) · Musée de la Paix (ouvert jusqu'en début de soirée — prévoir 2-3h, expérience émotionnellement forte) · Soir okonomiyaki Okonomi-mura</td><td>⚠️ Regarder la veille l'horaire de la marée haute à Miyajima pour le J24</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Musée de la Paix : prévoir 2-3h, expérience émotionnellement forte. Okonomiyaki hiroshimaïte à Okonomi-mura le soir. Départ J24 tranquille, calé sur la marée haute de Miyajima.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">宮</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🦌 Miyajima</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">24–25 avril · J24–J25 · 1 nuit sur l'île (le 24)</div>
+        <div class="phase-base"><strong>Base :</strong> Ryokan sur l'île (île vide le soir et à l'aube — sans les day-trippers)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J24</td><td>24 avril · Sam</td><td>🚆 Hiroshima → Miyajimaguchi (JR, ~30 min) · ⛴️ Ferry (10 min, carte Suica) · Torii + Itsukushima-jinja à marée haute · Cerfs libres sur la plage · Après-midi : Mont Misen ropeway + 30 min marche (vue mer intérieure de Seto) · Sanctuaire de nuit</td><td>Samedi = beaucoup de visiteurs en journée, mais l'île se vide le soir. Caler l'arrivée sur la marée haute (horaires à vérifier)</td></tr>
+              <tr><td>J25</td><td>25 avril · Dim</td><td>Matinée sur l'île, avant l'arrivée des visiteurs · Torii à nouveau (marée haute) · Mont Misen si pas fait J24 · Cerfs libres · Départ en début d'après-midi vers Kumamoto</td><td>⛴️ Ferry Miyajima → Hiroshima port (~25 min) · 🚆 Shinkansen → Kumamoto (~1h30, billet réservé en ligne)</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Le torii flottant n'est « dans l'eau » qu'à marée haute : vérifier la table des marées d'Itsukushima pour les 24 et 25 avril. Réserver le ryokan 3-4 mois à l'avance (~15 ryokans seulement sur l'île).
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">熊</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🏯 Kumamoto</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">25 avril soir · J25 soir</div>
+        <div class="phase-base"><strong>Base :</strong> Centre-ville, récupération de la voiture de location (road trip Kyushu)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J25 soir</td><td>25 avril · Dim</td><td>Arrivée Kumamoto fin d'après-midi · Récupération voiture (ou le lendemain matin) · Basashi dîner (sashimi de cheval, spécialité locale) · Check-in</td><td>1 nuit Kumamoto. Journée Miyajima le matin, Kumamoto le soir · vérifier les horaires de l'agence de location le dimanche</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Réserver la voiture de location 1-2 mois à l'avance. Basashi = spécialité locale (sashimi de cheval), à goûter le premier soir.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">阿</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🌋 Aso</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">26 avril · J26</div>
+        <div class="phase-base"><strong>Base :</strong> Ryokan à Aso</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J26</td><td>26 avril · Lun</td><td>Matin : Château de Kumamoto (reconstruction post-séisme 2016 visible) · 🚗 Route 57 → Aso (~1h30) · Daikanbo (belvédère caldeira géante) · Kusasenri (prairie volcanique, chevaux libres) · Nakadake Crater si JMA ≤ niveau 1 · Nuit ryokan Aso</td><td>⚠️ Vérifier alerte volcanique JMA la veille sur jma.go.jp</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Vérifier l'alerte volcanique JMA la veille (jma.go.jp) — Nakadake Crater seulement si niveau ≤ 1. Château de Kumamoto : reconstruction post-séisme 2016 encore visible.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">別</span>
+        <div class="phase-head">
+          <h3 class="phase-name">♨️ Beppu</h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">27 avril · J27</div>
+        <div class="phase-base"><strong>Base :</strong> Ryokan à Beppu, onsen sable chaud</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J27</td><td>27 avril · Mar</td><td>Kurokawa → Beppu : Aso-jinja matin · 🚗 → Kurokawa Onsen (~50 min) : pass nyūto tegata = 3 bains dans 3 auberges (~¥1,500) · 🚗 → Beppu (~1h30) · Jigoku Meguri (7 enfers bouillonnants) · Onsen sable chaud ryokan</td><td>1 nuit Beppu. Nyūto tegata = expérience unique</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Pass nyūto tegata à Kurokawa Onsen = 3 bains dans 3 auberges (~¥1,500). Jigoku Meguri = tournée des 7 "enfers" bouillonnants de Beppu.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-decor">福</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🍜 Fukuoka</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">28–29 avril · J28–J29</div>
+        <div class="phase-base"><strong>Base :</strong> Nakasu / Hakata</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J28</td><td>28 avril · Mer</td><td>Yufuin → Dazaifu → Fukuoka : Lac Kinrinko à l'aube (carpes, buée, torii dans l'eau — avant 9h) · Village artisanat de Yufuin · 🚗 → Dazaifu (~1h15) : Tenman-gu + umegaemochi · 🚗 → Hakata (~30 min) · Rendre voiture · Check-in Nakasu/Hakata</td><td>2 nuits Fukuoka. Dazaifu la veille du férié (moins de monde). Rendre voiture avant 18h</td></tr>
+              <tr><td>J29</td><td>29 avril · Jeu</td><td>Fukuoka tranquille : parc Ohori + ruines du château · Hakata (Tochoji, Shofuku-ji) · Canal City · Soir : Yatai (hakata ramen, gyoza, yakitori — ouverts 18h-1h)</td><td>🎌 29 avril = Shōwa no hi, férié et début de la Golden Week : du monde partout · demain 30 avril : départ vers Busan</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Rendre la voiture de location avant 18h à Hakata. Yatai (stands de rue) ouverts 18h-1h. Départ vers Busan le 30 avril : ⚠️ le ferry rapide Beetle n'existe plus (arrêté fin 2024). Soit le vol Eastar Jet Fukuoka → Busan (10h55 → 12h10), soit le ferry Camellia Line (environ 3 départs par semaine, à vérifier pour le 30 avril). Taxe de départ du Japon : 3 000 ¥/pers.
+        </div>
+      </article>
+
+    </div>
+
+    <aside class="rail">
+      <div class="trip-map-container" id="map-japan" role="img" aria-label="Carte du trajet au Japon avec 14 étapes"></div>
+      <div class="practical">
+        <h3>Infos pratiques</h3>
+        <ul>
+          <li>🚄 <span>Pas de JR Pass : 4 Shinkansen réservés en ligne (smartEX / JR West) + carte Suica pour le reste</span></li>
+          <li>💴 <span>Yen (¥) — cash roi hors grandes villes</span></li>
+          <li>📱 <span>Visit Japan Web, Google Translate offline</span></li>
+          <li>⚠️ <span>Alerte volcanique Aso (JMA) · marées Miyajima</span></li>
+        </ul>
+      </div>
+      <div class="checklist" data-country="japan">
+        <h3>✅ Checklist Japon</h3>
+        <div class="check-group">
+          <div class="check-group-head">🔴 Critique (3-4 mois avant)</div>
+          <label class="check-item"><input type="checkbox" data-id="jp-koyasan"><span>Shukubo Koyasan</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-miyajima"><span>Ryokan Miyajima</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-kawaguchi"><span>Ryokan Kawaguchiko</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-teamlab"><span>teamLab Borderless</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟡 Important (1-2 mois avant)</div>
+          <label class="check-item"><input type="checkbox" data-id="jp-bus-kawa-mat"><span>Bus Kawaguchiko → Matsumoto (Alpico)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-bus-shira"><span>Bus Takayama → Shirakawa-go → Kanazawa</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-ferry"><span>Fukuoka → Busan le 30 avril (vol Eastar Jet ou ferry Camellia Line)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-car-kyushu"><span>Location voiture Kyushu (Kumamoto → Fukuoka)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-ryokan-aso"><span>Ryokan Aso + Beppu</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-bus-shinjuku"><span>Bus Shinjuku → Kawaguchiko (Keio)</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟢 Avant le départ</div>
+          <label class="check-item"><input type="checkbox" data-id="jp-jrpass"><span>4 Shinkansen réservés en ligne (smartEX / JR West) + carte Suica</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-keta"><span>K-ETA Corée</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-visa-cn"><span>Vérifier visa Chine 2027 (exemption)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-vpn"><span>VPN téléchargé (ProtonVPN / NordVPN)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-payments"><span>WeChat Pay / Alipay configurés</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-esim"><span>eSIM Japon + Corée + Chine</span></label>
+          <label class="check-item"><input type="checkbox" data-id="jp-vjw"><span>Visit Japan Web</span></label>
+        </div>
+        <div class="progress"><div class="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label"><span class="progress-count">0</span>/<span class="progress-total">17</span> complétés</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+    </section>
+    <section id="korea"     class="country-section section-korea">
+<div class="container">
+  <header class="section-header">
+    <h2 class="section-title">🇰🇷 Corée</h2>
+    <p class="section-subtitle">30 avril → 9 mai 2027 · 9 nuits · 3 étapes · arrivée depuis Fukuoka</p>
+  </header>
+
+  <div class="banner">
+    <img data-slug="kr-banner" data-label="Corée · Bannière (Busan)" src="https://images.unsplash.com/photo-1601621915196-2621bfb0cd6e?auto=format&fit=crop&w=1600&q=80" alt="Busan">
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">9</div><div class="stat-lab">Nuits</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-lab">Villes</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-lab">KTX Busan→Seoul</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-lab">Tour DMZ</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-lab">Street food</div></div>
+  </div>
+
+  <div class="gallery" aria-label="Galerie Corée">
+    <div class="gallery-item"><img data-slug="kr-gal-busan" data-label="Corée · Galerie Busan/Haeundae" src="https://images.unsplash.com/photo-1601621915196-2621bfb0cd6e?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Busan · Haeundae</span></div>
+    <div class="gallery-item"><img data-slug="kr-gal-gyeongju" data-label="Corée · Galerie Gyeongju/Bulguksa" src="https://source.unsplash.com/featured/400x260/?gyeongju,bulguksa,temple" alt="" loading="lazy"><span>Gyeongju · Bulguksa</span></div>
+    <div class="gallery-item"><img data-slug="kr-gal-seoul" data-label="Corée · Galerie Seoul de nuit" src="https://images.unsplash.com/photo-1563461661026-49631dd5d68e?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Seoul de nuit</span></div>
+    <div class="gallery-item"><img data-slug="kr-gal-gwangjang" data-label="Corée · Galerie Gwangjang Market" src="https://source.unsplash.com/featured/400x260/?gwangjang,market" alt="" loading="lazy"><span>Gwangjang</span></div>
+    <div class="gallery-item"><img data-slug="kr-gal-bukchon" data-label="Corée · Galerie Bukchon Hanok" src="https://source.unsplash.com/featured/400x260/?bukchon,hanok" alt="" loading="lazy"><span>Bukchon</span></div>
+  </div>
+
+  <div class="body-grid">
+    <div class="phases">
+
+      <article class="phase">
+        <span class="phase-badge">BUSAN · J1–J3</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🌊 Busan</h3>
+          <span class="phase-nights">3 nuits</span>
+        </div>
+        <div class="phase-dates">30 avril → 2 mai · J1–J3 · arrivée le 30 vers midi</div>
+        <div class="phase-base"><strong>Base :</strong> Seomyeon (recommandé) — central, meilleure scène food et vie nocturne</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J1</td><td>30 avril · Ven</td><td>✈️ Vol Fukuoka → Busan (Eastar Jet, 10h55 → 12h10) ou ferry Camellia Line · T-money card · check-in hôtel · balade Haeundae Beach, Gwangalli Beach au coucher du soleil, Gwangalli bridge by night, dîner haejang-guk ou premier Korean BBQ</td><td>Journée d'arrivée légère · ⚠️ Golden Week japonaise + congés chinois du 1er au 5 mai : Busan très fréquenté, réserver tôt</td></tr>
+              <tr><td>J2</td><td>1er mai · Sam</td><td>🌅 Haedong Yonggungsa à l'aube (bus 181), Jagalchi Market, BIFF Square + hotteok, Gukje Market, Nampo-dong, dîner milmyeon</td><td>Haedong Yonggungsa avant 7h (samedi et jour de vacances = foule dès 9h) · Jagalchi avant 10h</td></tr>
+              <tr><td>J3</td><td>2 mai · Dim</td><td>Gamcheon Culture Village, déjeuner sundae gukbap, Dongbaekseom Island, option Spa Land Shinsegae (jjimjilbang), dernier Korean BBQ (samgyeopsal ou galbi)</td><td>Gamcheon avant 10h pour éviter la foule</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Haedong Yonggungsa avant 7h pour le lever de soleil sans touristes. Jagalchi Market : choisir au rez-de-chaussée, manger à l'étage, avant 10h. Gamcheon : arriver avant 10h pour les ruelles sans foule.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">GYEONGJU · J4–J5</span>
+        <div class="phase-head">
+          <h3 class="phase-name">⛩️ Gyeongju</h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">3–4 mai · J4–J5</div>
+        <div class="phase-base"><strong>Base :</strong> hanok stay (2 nuits) près de Hwangnidan-gil / Gyochon — tout le centre historique à pied</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J4</td><td>3 mai · Lun</td><td>🚄 KTX Busan → Gyeongju (~30 min), dépôt bagages au hanok, Tumuli Park (tombes royales de Silla), Cheomseongdae (observatoire astronomique VIIe s.), village hanok de Gyochon, 🌟 Donggung Palace + Anapji Pond illuminés à la tombée de la nuit</td><td>Centre historique à pied ou à vélo · Anapji spectaculaire une fois éclairé (après ~19h)</td></tr>
+              <tr><td>J5</td><td>4 mai · Mar</td><td>🌟 Bulguksa Temple (UNESCO) tôt + Seokguram Grotto (UNESCO), déjeuner ssambap local, après-midi tranquille : musée national de Gyeongju (trésors de Silla) ou lac Bomun à vélo, 2ᵉ nuit au hanok</td><td>Période de vacances : partir dès l'ouverture · combo bus 10/11 depuis le centre</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Gyeongju = ancienne capitale du royaume de Silla (57 av. J.-C. → 935), surnommée « musée à ciel ouvert ». Avec 2 nuits, le rythme devient agréable : centre historique et Anapji le J4, les deux sites UNESCO de la montagne (Bulguksa + Seokguram) le J5. Ssambap (petits plats à envelopper dans des feuilles) est la spécialité locale.
+        </div>
+      </article>
+
+      <article class="phase">
+        <span class="phase-badge">SEOUL · J6–J9</span>
+        <div class="phase-head">
+          <h3 class="phase-name">🏙️ Seoul</h3>
+          <span class="phase-nights">4 nuits</span>
+        </div>
+        <div class="phase-dates">5–8 mai · J6–J9</div>
+        <div class="phase-base"><strong>Base :</strong> Jongno / Insadong (central, proche palais, moins cher que Myeongdong) ou Hongdae (jeune, nocturne)</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>J</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>J6</td><td>5 mai · Mer</td><td>Petit-déjeuner hwangnam-ppang (pâtisserie locale), 🚄 KTX Gyeongju → Seoul (~2h), check-in, Myeongdong l'après-midi, Insadong le soir</td><td>🎈 5 mai = Jour des enfants (férié) : KTX très demandé, réserver dès l'ouverture des ventes · parcs bondés</td></tr>
+              <tr><td>J7</td><td>6 mai · Jeu</td><td>Gyeongbokgung Palace à l'ouverture + relève de la garde royale (10h ou 14h), 🏘️ Bukchon Hanok Village (après 10h), Gwangjang Market midi, Cheonggyecheon Stream, Dongdaemun Design Plaza (DDP) le soir</td><td>Gyeongbokgung fermé le mardi → jeudi OK · Bukchon (Red Zone) ouvert aux visiteurs de 10h à 17h seulement</td></tr>
+              <tr><td>J8</td><td>7 mai · Ven</td><td>🚌 Tour DMZ le matin (Imjingak, Tunnel n°3, Dora Observatory), après-midi libre, Hongdae le soir, pojangmacha en fin de nuit</td><td>Pas de tours DMZ le lundi ni les jours fériés → vendredi OK · JSA Panmunjom fermé · réserver 1 mois avant (~50-80k KRW)</td></tr>
+              <tr><td>J9</td><td>8 mai · Sam</td><td>Namsan Tower le matin, Itaewon + Haebangchon, Gangnam à midi, Han River (vélo, pique-nique), Mangwon Market, 🏮 défilé des lanternes (Yeondeunghoe) à Jongno le soir si confirmé, Korean BBQ + chimaek pour la dernière nuit</td><td>Le défilé des lanternes de lotus a lieu en général le samedi avant l'anniversaire de Bouddha (13 mai en 2027) : date à confirmer · dernière nuit avant le vol pour Shanghai (9 mai)</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Bukchon : quartier résidentiel, visiteurs admis de 10h à 17h seulement (Red Zone), respecter le silence. Gyeongbokgung fermé le mardi — visite prévue jeudi J7. Tour DMZ le vendredi J8 (pas de tours le lundi ni les jours fériés). 5 mai férié (Jour des enfants) : prévoir du monde. Peut-être le défilé des lanternes de lotus le samedi 8 mai au soir.
+        </div>
+      </article>
+
+    </div>
+
+    <aside class="rail">
+      <div class="trip-map-container" id="map-korea" role="img" aria-label="Carte du trajet en Corée avec 3 étapes"></div>
+      <div class="practical">
+        <h3>Infos pratiques</h3>
+        <ul>
+          <li>🚄 <span>KTX Busan → Seoul (via Gyeongju)</span></li>
+          <li>💴 <span>Won (₩) — cartes partout, cash marchés</span></li>
+          <li>📱 <span>T-money, Kakao Maps (mieux que Google), K-ETA</span></li>
+          <li>🍜 <span>Zones food : Gwangjang · Jagalchi · Nampo · Nambu</span></li>
+        </ul>
+      </div>
+      <div class="checklist" data-country="korea">
+        <h3>✅ Checklist Corée</h3>
+        <div class="check-group">
+          <div class="check-group-head">🔴 Critique (avant départ)</div>
+          <label class="check-item"><input type="checkbox" data-id="kr-keta"><span>K-ETA (autorisation électronique, 72h min)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-ferry"><span>Fukuoka → Busan, 30 avril (déjà dans checklist Japon)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-dmz"><span>Tour DMZ (réserver 1 mois avant, ~50-80k KRW)</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟡 Important (1 mois avant)</div>
+          <label class="check-item"><input type="checkbox" data-id="kr-ktx-bsn-gj"><span>KTX Busan → Gyeongju (~30 min)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-ktx-gj-seoul"><span>KTX Gyeongju → Seoul, mercredi 5 mai (férié : réserver dès l'ouverture des ventes, ~2h)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-hanok"><span>Hanok stay Gyeongju, 2 nuits 3-4 mai (places limitées)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-hotel-seoul"><span>Hôtel Seoul (Jongno / Insadong ou Hongdae)</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟢 Avant le départ</div>
+          <label class="check-item"><input type="checkbox" data-id="kr-tmoney"><span>T-money card (achat à l'arrivée ferry ou métro)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-kakao"><span>Kakao Maps (offline)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-translate"><span>Google Translate pack coréen</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-korail"><span>App Korail</span></label>
+          <label class="check-item"><input type="checkbox" data-id="kr-vol-cn"><span>Vol Seoul Incheon → Shanghai Pudong (~2h)</span></label>
+        </div>
+        <div class="progress"><div class="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label"><span class="progress-count">0</span>/<span class="progress-total">12</span> complétés</div>
+      </div>
+    </aside>
+  </div>
+</div>
+    </section>
+    <section id="china"     class="country-section section-china">
+<div class="container">
+  <header class="section-header">
+    <h2 class="section-title">🇨🇳 Chine + Hong Kong</h2>
+    <p class="section-subtitle">9 → 31 mai 2027 · 22 nuits · 6 étapes (avec Wulong)</p>
+  </header>
+
+  <div class="banner">
+    <img data-slug="cn-banner" data-label="Chine+HK · Bannière (HK Harbour)" src="https://images.unsplash.com/photo-1506634572416-48cdfe530110?auto=format&fit=crop&w=1600&q=80" alt="Hong Kong Harbour">
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">22</div><div class="stat-lab">Nuits</div></div>
+    <div class="stat"><div class="stat-num">6</div><div class="stat-lab">Étapes</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-lab">Trains HSR</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-lab">UNESCO</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-lab">Excursion Macao</div></div>
+  </div>
+
+  <div class="gallery" aria-label="Galerie Chine + HK">
+    <div class="gallery-item"><img data-slug="cn-gal-shanghai" data-label="Chine · Galerie Shanghai / The Bund" src="https://source.unsplash.com/featured/400x260/?shanghai,bund,skyline" alt="" loading="lazy"><span>Shanghai · The Bund</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-chongqing" data-label="Chine · Galerie Chongqing/Hongya" src="https://images.unsplash.com/photo-1594392173729-8fbe99c18a1c?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Chongqing · Hongya</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-wulong" data-label="Chine · Galerie Wulong / Trois Ponts naturels" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Three_Natural_Bridges.jpg/500px-Three_Natural_Bridges.jpg" alt="" loading="lazy"><span>Wulong · Trois Ponts</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-zhangjiajie" data-label="Chine · Galerie Zhangjiajie/Avatar" src="https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Zhangjiajie · Avatar</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-shenzhen" data-label="Chine · Galerie Shenzhen skyline" src="https://images.unsplash.com/photo-1636900741619-97032a3d4794?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Shenzhen skyline</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-hongkong" data-label="Chine · Galerie Hong Kong harbour" src="https://images.unsplash.com/photo-1506634572416-48cdfe530110?auto=format&fit=crop&w=400&q=80" alt="" loading="lazy"><span>Hong Kong harbour</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-macao" data-label="Chine · Galerie Macao (day trip)" src="https://source.unsplash.com/featured/400x260/?macao,portuguese" alt="" loading="lazy"><span>Macao (day trip)</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-hotpot" data-label="Chine · Galerie Hotpot Chongqing" src="https://source.unsplash.com/featured/400x260/?hotpot,chongqing" alt="" loading="lazy"><span>Hotpot Chongqing</span></div>
+    <div class="gallery-item"><img data-slug="cn-gal-dimsum" data-label="Chine · Galerie Dim sum HK" src="https://source.unsplash.com/featured/400x260/?dimsum,cantonese" alt="" loading="lazy"><span>Dim sum HK</span></div>
+  </div>
+
+  <div class="body-grid">
+    <div class="phases">
+
+      <article class="phase" data-city="shanghai">
+        <span class="phase-decor">上海</span>
+        <div class="phase-head">
+          <h3 class="phase-name">上海<span class="fr">Shanghai 🌆</span></h3>
+          <span class="phase-nights">5 nuits</span>
+        </div>
+        <div class="phase-dates">9–13 mai · S1–S5</div>
+        <div class="phase-base"><strong>Base :</strong> French Concession (法租界) ou Jing'an — cœur historique, meilleur pour food, bars et vie de quartier</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>S</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>S1</td><td>9 mai · Dim</td><td>✈️ Arrivée Shanghai Pudong (PVG) depuis Seoul (~2h), 🚄 Maglev ou métro Ligne 2 → centre (~45 min), check-in, balade d'orientation dans le quartier, dîner xiaolongbao (小笼包) autour du Bund</td><td>Maglev = 8 min chrono jusqu'à Longyang · Métro = ~1h mais direct</td></tr>
+              <tr><td>S2</td><td>10 mai · Lun</td><td>🌟 The Bund (外滩) matin, 🌟 Nanjing Road piétonne, déjeuner shengjianbao chez Yang's Fry-Dumpling, 🌟 Yuyuan Garden (豫园) + Old City, bar rooftop sur le Bund le soir (Bar Rouge / Vue at Hyatt / CHAR) pour la skyline Pudong illuminée</td><td>The Bund tôt le matin pour éviter la foule · Rooftop = image iconique de Shanghai moderne</td></tr>
+              <tr><td>S3</td><td>11 mai · Mar</td><td>🌟 Tianzifang (田子坊) avant 11h — ruelles shikumen transformées en galeries/cafés, déjeuner French Concession, 🌟 Xintiandi (新天地) versant haut de gamme, Fuxing Park l'après-midi, 🌟 Yongkang Road bar street le soir — meilleur endroit pour boire un verre à Shanghai</td><td>Tianzifang avant 11h pour éviter la cohue · Yongkang Road = ambiance de quartier authentique</td></tr>
+              <tr><td>S4</td><td>12 mai · Mer</td><td>🌟 Traversée Huangpu en ferry local (~2 CNY), 🌟 Shanghai Tower (上海中心) observation floor 118 (~180 CNY), déjeuner Pudong, 🌟 West Bund museum row l'après-midi (Long Museum / Yuz Museum), dernier verre sur le Bund au coucher du soleil</td><td>Shanghai Tower le matin = queue plus courte · musées du West Bund fermés le lundi, mercredi OK</td></tr>
+              <tr><td>S5</td><td>13 mai · Jeu</td><td>Excursion 🌟 Zhujiajiao (朱家角) — village d'eau à ~1h en métro, ponts en pierre, canaux, déjeuner dans une maison traditionnelle, retour Shanghai après-midi, Jing'an Temple le soir, dernière soirée dans la French Concession</td><td>Zhujiajiao : partir tôt, en semaine = calme · alternative Suzhou en train ~30 min · dernière nuit avant le vol pour Chongqing</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Shanghai = porte d'entrée idéale à la Chine — plus internationale, anglais présent, transition douce avant Chongqing dépaysant. Le contraste The Bund (colonial 1920s) / Pudong (skyline futuriste) est l'une des images les plus iconiques d'Asie. VPN et Alipay/WeChat Pay indispensables dès l'arrivée. Cartes étrangères acceptées un peu plus qu'à l'intérieur, mais mobile reste roi.
+        </div>
+      </article>
+
+      <article class="phase" data-city="chongqing">
+        <span class="phase-decor">重庆</span>
+        <div class="phase-head">
+          <h3 class="phase-name">重庆<span class="fr">Chongqing 🌶️</span></h3>
+          <span class="phase-nights">4 nuits</span>
+        </div>
+        <div class="phase-dates">14–17 mai · C1–C4</div>
+        <div class="phase-base"><strong>Base :</strong> Jiefangbei (解放碑) — cœur du centre, proche Hongya Cave</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>C</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>C1</td><td>14 mai · Ven</td><td>✈️ Vol Shanghai → Chongqing le matin (~3h), check-in Jiefangbei, 🌟 Hongyadong (洪崖洞) illuminé à 19h30 — maisons sur pilotis accrochées à la falaise, premier hotpot local</td><td>L'avion fait gagner une demi-journée sur le train (6-7h). Éviter les restaurants touristiques juste en face de Hongyadong</td></tr>
+              <tr><td>C2</td><td>15 mai · Sam</td><td>🌟 Ciqikou Ancient Town avant 10h (malatang, mochi vapeur), 🌟 station Liziba (métro Ligne 2 traverse un immeuble résidentiel), Téléphérique Yangtze (7 min), Jiefangbei + Chaotianmen (confluent Yangtze/Jialing), xiaomian ou chuan chuan xiang le soir</td><td>Samedi : Ciqikou très fréquenté, y être avant 10h</td></tr>
+              <tr><td>C3</td><td>16 mai · Dim</td><td>🌟 Grottes de Dazu (UNESCO) — train ~1h, Bouddha couché 30m à Baodingshan, retour ~15h30-16h, Eling Park vue panoramique 270°, hotpot sur Nanbin Road</td><td>Départ recommandé 8h30</td></tr>
+              <tr><td>C4</td><td>17 mai · Lun</td><td>🌟 Shibati (十八梯), vieux quartier en escaliers restauré · Kuixinglou (entrée par le toit au 22e étage) · passerelle de Raffles City · 🌟 Nanshan (One Tree Hill) au coucher du soleil : la plus belle vue de nuit sur la ville verticale</td><td>Journée plus lente pour sentir la ville · taxi pour Nanshan, retour après la nuit tombée</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Hongyadong illuminé à 19h30, ne pas manquer la tombée de la nuit. Ciqikou avant 10h pour éviter la foule. Dazu en train (~1h), journée à prévoir en entier. Hotpot obligatoire — capitale mondiale du genre. Avec 4 nuits, deux vraies journées en ville au lieu d'une.
+        </div>
+      </article>
+
+      <article class="phase" data-city="wulong">
+        <span class="phase-decor">武隆</span>
+        <div class="phase-head">
+          <h3 class="phase-name">武隆<span class="fr">Wulong 🌉</span></h3>
+          <span class="phase-nights">1 nuit</span>
+        </div>
+        <div class="phase-dates">18 mai · C5 · étape sur la route de Zhangjiajie</div>
+        <div class="phase-base"><strong>Base :</strong> Xiannüshan (仙女山), à ~20 min des Trois Ponts naturels</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>C</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>C5</td><td>18 mai · Mar</td><td>🚄 Train Chongqing Est → Wulong Sud (~1h) · navette vers le parc · 🌟 Trois Ponts naturels (天生三桥, UNESCO) : arches géantes et ancien relais de poste au fond du canyon · option : gorge de Longshui · nuit à Xiannüshan</td><td>Ligne à grande vitesse Chongqing → Zhangjiajie, qui s'arrête à Wulong Sud · navette gare → parc · billet ~125 CNY + navette</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Le karst de Wulong (UNESCO) est le grand paysage de l'étape, sur la route de Zhangjiajie. Pas de détour : on reprend le train à Wulong Sud le lendemain. Mardi = peu de monde.
+        </div>
+      </article>
+
+      <article class="phase" data-city="zhangjiajie">
+        <span class="phase-decor">张家界</span>
+        <div class="phase-head">
+          <h3 class="phase-name">张家界<span class="fr">Zhangjiajie 🏔️</span></h3>
+          <span class="phase-nights">4 nuits</span>
+        </div>
+        <div class="phase-dates">19–22 mai · C6–C9</div>
+        <div class="phase-base"><strong>Base :</strong> Wulingyuan (武陵源) — à l'entrée même du parc</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>C</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>C6</td><td>19 mai · Mer</td><td>🚄 Train Wulong Sud → Zhangjiajie Ouest (~1h30), taxi Wulingyuan, billets parc (~248 CNY, valables plusieurs jours), 🌟 Golden Whip Stream (7,5km, marche facile, singes macaques), dîner cuisine Tujia</td><td>Marché nocturne de Wulingyuan le soir</td></tr>
+              <tr><td>C7</td><td>20 mai · Jeu</td><td>Départ 7h30 (avant les groupes), 🌟 Bailong Elevator (330m de verre) avant 9h, 🌟 Yuanjiajie + Hallelujah/Avatar Mountain (pilier de 1250m), déjeuner dans le parc, Tianzi Mountain l'après-midi (télécabine incluse)</td><td>Bailong Elevator avant 9h pour éviter les files · jeudi = calme</td></tr>
+              <tr><td>C8</td><td>21 mai · Ven</td><td>🌟 Tianmen Mountain (ticket séparé ~258 CNY), télécabine 7,5km/30 min, 🌟 Glass Walkway à 1 430m, 🌟 Heaven's Gate Arch (999 marches), retour ville ~16h, option spectacle "Charming Xiangxi" le soir</td><td>Site distinct du parc national · vendredi, avant la foule du week-end</td></tr>
+              <tr><td>C9</td><td>22 mai · Sam</td><td>🌟 Grand Canyon + Glass Bridge (430m de long, 300m de haut) le matin · après-midi tranquille : lac Baofeng ou repos</td><td>Glass Bridge : réservation en ligne OBLIGATOIRE (quota journalier, samedi = réserver tôt). Plus de visite le jour du départ</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Bailong Elevator avant 9h pour éviter les files. Glass Bridge réservation OBLIGATOIRE en ligne, places journalières limitées. Brume matinale possible en mai mais souvent ambiance Avatar. Tickets du parc valables plusieurs jours. Avec 4 nuits, le jour du départ reste libre pour le long trajet vers Shenzhen.
+        </div>
+      </article>
+
+      <article class="phase" data-city="shenzhen">
+        <span class="phase-decor">深圳</span>
+        <div class="phase-head">
+          <h3 class="phase-name">深圳<span class="fr">Shenzhen 🏙️</span></h3>
+          <span class="phase-nights">2 nuits</span>
+        </div>
+        <div class="phase-dates">23–24 mai · C10–C11</div>
+        <div class="phase-base"><strong>Base :</strong> Futian (福田) — central, proche OCT Loft et frontière HK</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>C</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>C10</td><td>23 mai · Dim</td><td>🚄 Train Zhangjiajie Ouest → Shenzhen Nord le matin (~6h30), arrivée en milieu d'après-midi, check-in, dim sum cantonais dans le quartier, balade nocturne autour de Coco Park</td><td>Longue journée de train : prévoir en-cas et batterie · cuisine influencée par le Guangdong voisin</td></tr>
+              <tr><td>C11</td><td>24 mai · Lun</td><td>🌟 Huaqiangbei Electronics Market avant 11h (négocier), 🌟 Dafen Oil Painting Village (commande de toile possible), Shenzhen Bay Park au coucher du soleil, Cantonese BBQ pour la dernière nuit sur le continent</td><td>Huaqiangbei : arriver tôt, plus calme · OCT Loft : beaucoup de galeries fermées le lundi</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Huaqiangbei mieux tôt le matin, négocier systématiquement. Dafen : possible de commander un portrait ou paysage sur place (délai 1-3 jours). Dim sum cantonais nettement meilleur qu'en Chine intérieure.
+        </div>
+      </article>
+
+      <article class="phase" data-city="hongkong">
+        <span class="phase-decor">香港</span>
+        <div class="phase-head">
+          <h3 class="phase-name">香港<span class="fr">Hong Kong 🇭🇰</span></h3>
+          <span class="phase-nights">6 nuits</span>
+        </div>
+        <div class="phase-dates">25–30 mai · C12–C17</div>
+        <div class="phase-base"><strong>Base :</strong> Wan Chai / Sheung Wan (recommandé pour l'authenticité) ou Kowloon TST</div>
+        <details>
+          <summary>Détail jour par jour</summary>
+          <table class="day-table">
+            <thead><tr><th>C</th><th>Date</th><th>Activités</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>C12</td><td>25 mai · Mar</td><td>🚆 Train Shenzhen Nord → HK West Kowloon (19 min), check-in, TST Waterfront, Mong Kok, 🌟 Symphony of Lights à 20h (depuis le quai), wonton noodle soup à Mong Kok</td><td>Meilleure vue Symphony of Lights depuis le quai, pas les terrasses</td></tr>
+              <tr><td>C13</td><td>26 mai · Mer</td><td>🌟 Yum cha / dim sum matin dans un resto cantonais local, Sheung Wan + Hollywood Road, Central-Mid-Levels Escalator, 🌟 Victoria Peak fin d'après-midi (Peak Tram), Lan Kwai Fong le soir</td><td>Peak en fin d'après-midi : lumière dorée + tombée de nuit en un trajet</td></tr>
+              <tr><td>C14</td><td>27 mai · Jeu</td><td>Wong Tai Sin Temple tôt le matin, Kowloon Walled City Park, Roast Goose chez Yat Lok ou Kam's à midi, Sham Shui Po, 🌟 Temple Street Night Market le soir</td><td>Roast Goose : l'un des repas les plus emblématiques de HK</td></tr>
+              <tr><td>C15</td><td>28 mai · Ven</td><td>🛳️ Ferry Turbojet HK → Macao (~1h), 🌟 Ruines St-Paul's + Senado Square + A-Ma Temple (UNESCO), pastel de nata chez Lord Stow's, retour ferry ~18h</td><td>Un vendredi : moins de monde que le week-end · réserver le ferry à l'avance</td></tr>
+              <tr><td>C16</td><td>29 mai · Sam</td><td>Bus vers Stanley (vue côtière), Stanley Market, Aberdeen — promenade en bateau sampan dans le Typhoon Shelter, soirée à Wan Chai</td><td>Contraste gratte-ciels / bateaux de pêche à Aberdeen</td></tr>
+              <tr><td>C17</td><td>30 mai · Dim</td><td>🌟 Cha chaan teng petit-déjeuner (HK French Toast, Pineapple Bun, Milk Tea), PMQ ou marché Sai Ying Pun, shopping souvenirs, dernier dim sum de luxe le soir avec vue sur le port</td><td>Dernière nuit · vol HKG → ZRH le 31 mai (vols directs en général le soir : late check-out ou consigne)</td></tr>
+            </tbody>
+          </table>
+        </details>
+        <div class="notes">
+          <div class="notes-head">💡 Notes clés</div>
+          Symphony of Lights tous les soirs à 20h depuis la promenade TST. Yum cha dans un vrai restaurant cantonais, pas un hôtel. Victoria Peak à la tombée de la nuit. Ferry Macao du vendredi (C15, 28 mai) = réserver à l'avance. HK Milk Tea + Pineapple Bun au petit-déjeuner. Le 31 mai : journée sans hôtel avant le vol du soir.
+        </div>
+      </article>
+
+    </div>
+
+    <aside class="rail">
+      <div class="trip-map-container" id="map-china" role="img" aria-label="Carte du trajet en Chine et Hong Kong avec 6 étapes"></div>
+      <div class="practical">
+        <h3>Infos pratiques</h3>
+        <ul>
+          <li>🚄 <span>Trains grande vitesse via Trip.com</span></li>
+          <li>💴 <span>Yuan (¥) · Alipay/WeChat Pay indispensables</span></li>
+          <li>📱 <span>VPN ACTIVÉ AVANT d'atterrir · Amap offline</span></li>
+          <li>⚠️ <span>Visa Chine 2027 : exemption confirmée seulement jusqu'au 31/12/2026, vérifier la prolongation</span></li>
+          <li>🇭🇰 <span>Hong Kong = territoire distinct, aucun visa, tout fonctionne</span></li>
+        </ul>
+      </div>
+      <div class="checklist" data-country="china">
+        <h3>✅ Checklist Chine + HK</h3>
+        <div class="check-group">
+          <div class="check-group-head">🔴 Critique — à surveiller</div>
+          <label class="check-item"><input type="checkbox" data-id="cn-visa"><span>Visa Chine 2027 — surveiller ambassade CH nov-déc 2026</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🔴 Critique — à configurer avant départ</div>
+          <label class="check-item"><input type="checkbox" data-id="cn-vpn"><span>VPN téléchargé + testé (Astrill / ExpressVPN)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-payment"><span>WeChat Pay ou Alipay + carte Visa/MC configurée</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟡 Réservations 2-3 mois avant</div>
+          <label class="check-item"><input type="checkbox" data-id="cn-vol-hk-zrh"><span>Vol HKG → ZRH le 31 mai (Cathay ou Swiss, direct du soir)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-vol-icn-pvg"><span>Vol Seoul Incheon → Shanghai Pudong, 9 mai (~2h)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-train-pvg-ckg"><span>Vol Shanghai → Chongqing, 14 mai (~3h)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-hotel-shanghai"><span>Hôtel Shanghai (French Concession ou Jing'an)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-shanghai-tower"><span>Ticket Shanghai Tower observation deck (online)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-train-ckg-wl"><span>Train Chongqing Est → Wulong Sud, 18 mai (~1h)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-hotel-wulong"><span>Hôtel à Xiannüshan (Wulong), nuit du 18 mai</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-train-ckg-zjj"><span>Train Wulong Sud → Zhangjiajie Ouest, 19 mai (~1h30)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-train-zjj-sz"><span>Train Zhangjiajie Ouest → Shenzhen Nord, 23 mai (~6h30)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-train-sz-hk"><span>Train Shenzhen Nord → HK West Kowloon (19 min)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-glass-bridge"><span>Glass Bridge Zhangjiajie (résa en ligne obligatoire)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-tianmen"><span>Ticket Tianmen Mountain (online recommandé)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-ferry-macao"><span>Ferry Turbojet HK → Macao (ven 28 mai)</span></label>
+        </div>
+        <div class="check-group">
+          <div class="check-group-head">🟢 Avant le départ</div>
+          <label class="check-item"><input type="checkbox" data-id="cn-octopus"><span>Octopus Card HK (aéroport ou MTR)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-amap"><span>App Amap offline (Chine continentale)</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-translate-cn"><span>Google Translate pack mandarin</span></label>
+          <label class="check-item"><input type="checkbox" data-id="cn-cash-cny"><span>~500 CNY cash pour urgences</span></label>
+        </div>
+        <div class="progress"><div class="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label"><span class="progress-count">0</span>/<span class="progress-total">15</span> complétés</div>
+      </div>
+    </aside>
+  </div>
+</div>
+    </section>
+  </main>
+  <footer id="footer"><div class="container">
+  <div class="footer-line">Asie 2027 · un printemps · 5 pays · 103 nuits</div>
+  <div class="footer-sub">Planifié avec ♥ · dernière mise à jour <span id="last-updated"></span></div>
+</div></footer>
+  <!-- Photo editor UI (floating FAB + modal) -->
+  <button id="pe-fab" title="Éditer les photos" aria-label="Éditer les photos">🖼️</button>
+  <div id="pe-modal" class="pe-modal-back" role="dialog" aria-labelledby="pe-title">
+    <div class="pe-modal">
+      <button id="pe-close" class="pe-close" aria-label="Fermer">Fermer ✕</button>
+      <h2 id="pe-title">🖼️ Éditer les photos</h2>
+      <p class="pe-intro">
+        Remplace n'importe quelle photo par la tienne (upload local) ou une URL. Les changements sont sauvés dans ton navigateur — pas besoin d'internet pour les fichiers locaux. Bouton ↺ pour restaurer l'originale.
+      </p>
+      <div id="pe-list" class="pe-list"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+const TRIP_START = new Date('2027-02-16T20:00:00+01:00');
+const COUNTRIES = ['thailand','vietnam','japan','korea','china'];
+
+// Task 5: TripMap reusable Leaflet map component
+class TripMap {
+  constructor(container, opts) {
+    this.container = container;
+    this.opts = opts;
+    this.map = null;
+  }
+
+  init() {
+    if (this.map) return;
+    const { center, zoom, color, stops } = this.opts;
+
+    this.map = L.map(this.container, {
+      center, zoom,
+      scrollWheelZoom: false,
+      attributionControl: false
+    });
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16
+    }).addTo(this.map);
+
+    // Shadow polyline for depth
+    const path = stops.map(s => [s.lat, s.lng]);
+    L.polyline(path, { color: '#000', weight: 6, opacity: 0.35 }).addTo(this.map);
+    L.polyline(path, { color, weight: 3, opacity: 0.9, dashArray: '6,4' }).addTo(this.map);
+
+    // Numbered markers with hover tooltip
+    stops.forEach((stop, i) => {
+      const num = i + 1;
+      const icon = L.divIcon({
+        className: 'trip-marker',
+        html: `<span class="trip-marker-dot" style="--c:${color}">${num}</span>`,
+        iconSize: [34, 34], iconAnchor: [17, 17]
+      });
+      const marker = L.marker([stop.lat, stop.lng], { icon }).addTo(this.map);
+
+      const popupHtml = `
+        <div class="trip-popup">
+          <img src="https://images.unsplash.com/photo-${stop.photo}?auto=format&fit=crop&w=200&q=80"
+               alt="" loading="lazy" onerror="this.style.display='none'">
+          <div class="trip-popup-body">
+            <div class="trip-popup-name">${stop.name}</div>
+            <div class="trip-popup-meta">${stop.nights} nuit${stop.nights > 1 ? 's' : ''} · ${stop.days}</div>
+            ${stop.keyword ? `<div class="trip-popup-tag" style="--c:${color}">${stop.keyword}</div>` : ''}
+          </div>
+        </div>`;
+      marker.bindTooltip(popupHtml, {
+        direction: 'top', offset: [0, -18], opacity: 1,
+        className: 'trip-tooltip', permanent: false, sticky: false
+      });
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Task 4: startCountdown() + initHeroMap()
+  function startCountdown() {
+    const el = document.getElementById('countdown');
+    if (!el) return;
+    function tick() {
+      const now = new Date();
+      const diffMs = TRIP_START - now;
+      if (diffMs <= 0) { el.textContent = 'C\'est parti !'; return; }
+      const days = Math.floor(diffMs / 86400000);
+      const hours = Math.floor((diffMs % 86400000) / 3600000);
+      const mins = Math.floor((diffMs % 3600000) / 60000);
+      el.textContent = days > 0 ? `J-${days} · ${hours}h` : `${hours}h ${String(mins).padStart(2, '0')}`;
+    }
+    tick();
+    setInterval(tick, 60_000);
+  }
+  startCountdown();
+
+  // ===== HERO GLOBE (D3 + TopoJSON) =====
+  initStarfield();
+  initHeroGlobe();
+
+  async function initHeroGlobe() {
+    if (typeof d3 === 'undefined' || typeof topojson === 'undefined') return;
+    const svg = document.querySelector('.hero-svg');
+    if (!svg) return;
+
+    const U = id => id ? 'https://images.unsplash.com/photo-' + id + '?auto=format&fit=crop&w=1400&q=80' : '';
+    // Le voyage par PAYS : à l'arrivée, toutes les villes défilent dans l'ordre du planning.
+    const TOURS = [
+      { key:'home', name:'Home', flag:'🇨🇭', color:'#E8C97A', iso:756, nights:'Départ', dateLabel:'16 fév 2027 · 20h00',
+        quote:'« ✈ Grand départ — 16 février 2027 à 20h00, cap sur l’Asie. »',
+        cities:[ {n:'Home', d:'16 fév · 20h', lat:47.38, lng:8.55, photo:U('1527668752968-14dc70a27c95')} ] },
+      { key:'th', name:'Thaïlande', flag:'🇹🇭', color:'#F5A623', iso:764, nights:'22 nuits', dateLabel:'17 fév → 11 mars',
+        quote:'« Temples dorés, jungle du Nord et îles de la mer d’Andaman. »',
+        cities:[
+          {n:'Bangkok',     d:'J1–4',   lat:13.75, lng:100.50, photo:U('1508009603885-50cf7c579365')},
+          {n:'Chiang Mai',  d:'J5–8',   lat:18.79, lng:98.99,  photo:U('1512553353614-82a7370096dc')},
+          {n:'Chiang Rai',  d:'J9–10',  lat:19.91, lng:99.84,  photo:U('1528181304800-259b08848526')},
+          {n:'Khao Sok',    d:'J11–12', lat:8.93,  lng:98.53,  photo:U('1573790387438-4da905039392')},
+          {n:'Phang Nga',   d:'J13',    lat:8.45,  lng:98.53,  photo:U('1519451241324-20b4ea2c4220')},
+          {n:'Krabi',       d:'J14–18 · J22', lat:8.09,  lng:98.91,  photo:U('1552465011-b4e21bf6e79a')},
+          {n:'Koh Phi Phi', d:'J19–21', lat:7.74,  lng:98.77,  photo:U('1506665531195-3566af2b4dfa')}
+        ] },
+      { key:'vn', name:'Vietnam', flag:'🇻🇳', color:'#2ECC71', iso:704, nights:'21 nuits', dateLabel:'11 mars → 1er avr',
+        quote:'« Du delta du Mékong à la baie de Lan Ha — sud → nord. »',
+        cities:[
+          {n:'Hô Chi Minh-Ville', d:'J1–3',  lat:10.82, lng:106.63, photo:U('1583417319070-4a69db38a482')},
+          {n:'Hoi An',      d:'J4–7',   lat:15.88, lng:108.34, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/PhoCoHoiAn.jpg/1280px-PhoCoHoiAn.jpg'},
+          {n:'Phong Nha',   d:'J8–9',   lat:17.59, lng:106.28, photo:'https://upload.wikimedia.org/wikipedia/commons/2/2d/PhongNhaCave2.jpg'},
+          {n:'Tam Coc',     d:'J11–13', lat:20.25, lng:105.92, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Tam_Coc_from_Summit_-_August_2023.jpg/1280px-Tam_Coc_from_Summit_-_August_2023.jpg'},
+          {n:'Pu Luong',    d:'J14–16', lat:20.48, lng:105.16, photo:U('1520962880247-cfaf541c8724')},
+          {n:'Hanoï',       d:'J17–18 · J21', lat:21.03, lng:105.85, photo:U('1555921015-5532091f6026')},
+          {n:'Baie de Lan Ha', d:'J19–20', lat:20.77, lng:107.07, photo:U('1573270689103-d7a4e42b609a')}
+        ] },
+      { key:'jp', name:'Japon', flag:'🇯🇵', color:'#FF3D7F', iso:392, nights:'29 nuits', dateLabel:'1er → 30 avr',
+        quote:'« Un mois du sakura aux volcans — de Tokyo à Fukuoka. »',
+        cities:[
+          {n:'Tokyo',       d:'J1–6',   lat:35.68, lng:139.65, photo:U('1540959733332-eab4deabeeaf')},
+          {n:'Kawaguchiko', d:'J7–8',   lat:35.51, lng:138.76, photo:U('1490761668535-35497054764b')},
+          {n:'Matsumoto',   d:'J9',     lat:36.24, lng:137.97, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Matsumoto_Castle_Keep_Tower.jpg/1280px-Matsumoto_Castle_Keep_Tower.jpg'},
+          {n:'Takayama',    d:'J10–11', lat:36.14, lng:137.25, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Takayama%27s_Early_Winter_Welcome_%28NE%29.jpg/1280px-Takayama%27s_Early_Winter_Welcome_%28NE%29.jpg'},
+          {n:'Kanazawa',    d:'J12–13', lat:36.56, lng:136.66, photo:U('1747547665435-299b2f28a028')},
+          {n:'Kyoto',       d:'J14–19', lat:35.01, lng:135.77, photo:U('1528360983277-13d401cdc186')},
+          {n:'Osaka',       d:'J20–21', lat:34.69, lng:135.50, photo:U('1565117082819-e40a7fddfd85')},
+          {n:'Koyasan',     d:'J22',    lat:34.21, lng:135.58, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Danjogaran_Koyasan12n3200.jpg/1280px-Danjogaran_Koyasan12n3200.jpg'},
+          {n:'Hiroshima',   d:'J23', lat:34.39, lng:132.46, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Genbaku_Dome04-r.JPG/1280px-Genbaku_Dome04-r.JPG'},
+          {n:'Miyajima',    d:'J24–25',    lat:34.30, lng:132.32, photo:U('1509316785289-025f5b846b35')},
+          {n:'Kumamoto',    d:'J25', lat:32.80, lng:130.71, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Kumamoto_Castle_Keep_Tower_20221022-3.jpg/1280px-Kumamoto_Castle_Keep_Tower_20221022-3.jpg'},
+          {n:'Aso',         d:'J26',    lat:32.88, lng:131.10, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/20140516%E9%98%BF%E8%98%87%E5%B1%B1%E5%BA%83%E5%9F%9F.jpg/1280px-20140516%E9%98%BF%E8%98%87%E5%B1%B1%E5%BA%83%E5%9F%9F.jpg'},
+          {n:'Beppu',       d:'J27',    lat:33.28, lng:131.50, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/180131_Umi-Jigoku.jpg/1280px-180131_Umi-Jigoku.jpg'},
+          {n:'Fukuoka',     d:'J28–29', lat:33.59, lng:130.40, photo:'https://upload.wikimedia.org/wikipedia/commons/b/bd/Fukuoka_Skyline_of_Seaside_Momochi.jpg'}
+        ] },
+      { key:'kr', name:'Corée', flag:'🇰🇷', color:'#3D9EFF', iso:410, nights:'9 nuits', dateLabel:'30 avr → 9 mai',
+        quote:'« Busan, Gyeongju, Seoul — palais, plages et néons Hongdae. »',
+        cities:[
+          {n:'Busan',    d:'J1–3', lat:35.18, lng:129.08, photo:U('1601621915196-2621bfb0cd6e')},
+          {n:'Gyeongju', d:'J4–5', lat:35.86, lng:129.22, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Lotus_Flower_Bridge_and_Seven_Treasure_Bridge_at_Bulguksa_in_Gyeongju%2C_Korea.jpg/1280px-Lotus_Flower_Bridge_and_Seven_Treasure_Bridge_at_Bulguksa_in_Gyeongju%2C_Korea.jpg'},
+          {n:'Seoul',    d:'J6–9', lat:37.57, lng:126.98, photo:U('1563461661026-49631dd5d68e')}
+        ] },
+      { key:'cn', name:'Chine + HK', flag:'🇨🇳', color:'#FF4A2A', iso:156, nights:'22 nuits', dateLabel:'9 → 31 mai',
+        quote:'« Shanghai, Chongqing, les arches de Wulong, les montagnes d’Avatar, puis Hong Kong pour finir. »',
+        cities:[
+          {n:'Shanghai',    d:'J1–5',   lat:31.23, lng:121.47, photo:U('1474181487882-5abf3f0ba6c2')},
+          {n:'Chongqing',   d:'J6–9',   lat:29.56, lng:106.55, photo:U('1594392173729-8fbe99c18a1c')},
+          {n:'Wulong',      d:'J10',    lat:29.43, lng:107.80, photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Three_Natural_Bridges.jpg/1280px-Three_Natural_Bridges.jpg'},
+          {n:'Zhangjiajie', d:'J11–14', lat:29.12, lng:110.48, photo:U('1510414842594-a61c69b5ae57')},
+          {n:'Shenzhen',    d:'J15–16', lat:22.54, lng:114.06, photo:U('1636900741619-97032a3d4794')},
+          {n:'Hong Kong',   d:'J17–22', lat:22.32, lng:114.17, photo:U('1506634572416-48cdfe530110')}
+        ] }
+    ];
+    // Centre géographique de chaque pays (pour cadrer le globe)
+    TOURS.forEach(t => { t.center = d3.geoCentroid({ type:'MultiPoint', coordinates: t.cities.map(c => [c.lng, c.lat]) }); });
+    // Pays du voyage — couleurs de remplissage des continents
+    const VISITED = { 756:'#E8C97A', 764:'#F5A623', 704:'#2ECC71', 392:'#FF3D7F', 410:'#3D9EFF', 156:'#FF4A2A', 344:'#B85CFF' };
+    const CX = 780, CY = 360;
+    const BASE = 330;    // échelle « survol » (globe entier dans les étoiles, pendant les vols)
+    const COUNTRY = 420; // échelle « plongée sur le pays » (les villes défilent)
+    const progressEl = document.getElementById('dest-progress');
+
+    const projection = d3.geoOrthographic()
+      .scale(COUNTRY)
+      .translate([CX, CY])
+      .clipAngle(90)
+      .rotate([-TOURS[0].center[0], -TOURS[0].center[1], 0]);
+    const geoPath = d3.geoPath(projection);
+    const graticule = d3.geoGraticule().step([15, 15]);
+
+    // Load world topology
+    let countriesFeat;
+    try {
+      const world = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+      countriesFeat = topojson.feature(world, world.objects.countries).features;
+    } catch (err) {
+      console.warn('World data failed to load', err);
+      return;
+    }
+
+    const gCountries = d3.select('#countries');
+    let tripArc = null;   // tracé intra-pays (grandit ville par ville)
+
+    // Render countries once
+    gCountries.selectAll('path')
+      .data(countriesFeat)
+      .join('path')
+      .attr('class', d => 'country' + (VISITED[+d.id] ? ' visited' : ''))
+      .style('--country-color', d => VISITED[+d.id] ? hexAlpha(VISITED[+d.id], 0.65) : null)
+      .style('--country-color-strong', d => VISITED[+d.id] || null);
+
+    function hexAlpha(hex, a) {
+      const n = parseInt(hex.slice(1), 16);
+      return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+    }
+
+    // Markers group — peuplé dynamiquement par pays (enterTour)
+    const gMarkers = d3.select('#markers');
+
+    function isVisible(coord) {
+      const rot = projection.rotate();
+      // spherical dot product against center: cos(distance)
+      const λ = coord[0] * Math.PI / 180, φ = coord[1] * Math.PI / 180;
+      const λ0 = -rot[0] * Math.PI / 180, φ0 = -rot[1] * Math.PI / 180;
+      const cosDist = Math.sin(φ)*Math.sin(φ0) + Math.cos(φ)*Math.cos(φ0)*Math.cos(λ-λ0);
+      return cosDist > 0.05; // slight margin
+    }
+
+    // Cache des cercles fixes du globe — leur rayon suit l'échelle (effet zoom)
+    const cOcean = document.getElementById('oceanCircle'),
+          cClip  = document.getElementById('clipCircle'),
+          cShade = document.getElementById('globeShade'),
+          cRim   = document.getElementById('globeRim'),
+          cAtmo  = document.getElementById('globeAtmo');
+    function syncGlobeRadius() {
+      const s = projection.scale();
+      if (cOcean) cOcean.setAttribute('r', s);
+      if (cClip)  cClip.setAttribute('r', s);
+      if (cShade) cShade.setAttribute('r', s);
+      if (cRim)   cRim.setAttribute('r', s);
+      if (cAtmo)  cAtmo.setAttribute('r', s + 15);
+    }
+
+    function render() {
+      syncGlobeRadius();
+      gCountries.selectAll('path').attr('d', geoPath);
+      d3.select('#graticule').attr('d', geoPath(graticule()));
+      d3.select('#trip-arc').attr('d', tripArc ? geoPath(tripArc) : null);
+      gMarkers.selectAll('g.marker').each(function(d) {
+        const p = projection([d.lng, d.lat]);
+        const vis = isVisible([d.lng, d.lat]);
+        const sel = d3.select(this);
+        if (p && vis) {
+          sel.attr('transform', `translate(${p[0]},${p[1]})`).attr('opacity', 1);
+        } else {
+          sel.attr('opacity', 0);
+        }
+      });
+    }
+
+    function updatePlane(lng, lat, aheadLng, aheadLat) {
+      const p = projection([lng, lat]);
+      const p2 = projection([aheadLng, aheadLat]);
+      const plane = document.getElementById('plane');
+      if (p && p2 && isVisible([lng, lat])) {
+        const bearing = Math.atan2(p2[1] - p[1], p2[0] - p[0]) * 180 / Math.PI;
+        plane.setAttribute('transform', `translate(${p[0]},${p[1]}) rotate(${bearing})`);
+        plane.style.opacity = 1;
+      } else {
+        plane.style.opacity = 0;
+      }
+    }
+
+    // ===== Affiche une VILLE : grande photo + carte + marqueur allumé + progression =====
+    function showCity(t, i) {
+      const c = t.cities[i], N = t.cities.length;
+      const card = document.getElementById('dest-card');
+      card.style.color = t.color;
+      setHeroPhoto(c.photo);
+      const thumb = document.getElementById('dest-img');
+      if (c.photo) { thumb.style.visibility = 'visible'; thumb.src = c.photo; }
+      else { thumb.style.visibility = 'hidden'; }
+      const tintEl = document.getElementById('hpb-tint');
+      if (tintEl) tintEl.style.setProperty('--tint', t.color);
+      document.getElementById('dest-flag').textContent = t.flag;
+      document.getElementById('dest-name').textContent = c.n;
+      document.getElementById('dest-country').textContent = t.name;
+      document.getElementById('dest-nights').textContent = c.d;
+      document.getElementById('dest-date').textContent = t.dateLabel;
+      document.getElementById('dest-quote').textContent = t.quote;
+      document.getElementById('dest-order').textContent = (N > 1) ? (i + 1) + ' / ' + N : t.nights;
+      // Marqueurs : allumés jusqu'à i ; le courant (i) est le seul labellisé
+      gMarkers.selectAll('g.marker')
+        .classed('done', (d, j) => j <= i)
+        .classed('is-current', (d, j) => j === i);
+      // Tracé qui grandit ville par ville
+      tripArc = (i > 0) ? { type: 'LineString', coordinates: t.cities.slice(0, i + 1).map(c2 => [c2.lng, c2.lat]) } : null;
+      // Barre de progression = villes du pays
+      if (progressEl) progressEl.querySelectorAll('span').forEach((s, j) => { s.className = j < i ? 'done' : (j === i ? 'current' : ''); });
+      card.classList.add('active');
+      render();
+    }
+
+    // ===== Entrée dans un PAYS : (re)bind des marqueurs, surbrillance, progression =====
+    function enterTour(idx) {
+      const t = TOURS[idx];
+      const sel = gMarkers.selectAll('g.marker').data(t.cities, d => d.n);
+      sel.exit().remove();
+      const g = sel.enter().append('g').attr('class', 'marker');
+      g.append('circle').attr('class', 'marker-halo').attr('r', 6);
+      g.append('circle').attr('class', 'marker-dot').attr('r', 5);
+      g.append('circle').attr('class', 'marker-core').attr('r', 1.8);
+      g.append('text').attr('class', 'marker-label').attr('y', -14).attr('text-anchor', 'middle');
+      gMarkers.selectAll('g.marker').style('color', t.color)
+        .select('text.marker-label').text(d => d.n);
+      gCountries.selectAll('path').classed('is-current', c => +c.id === t.iso);
+      d3.select('#trip-arc').style('stroke', t.color).style('filter', 'drop-shadow(0 0 6px ' + t.color + ')');
+      if (progressEl) progressEl.innerHTML = t.cities.map(() => '<span></span>').join('');
+    }
+
+    // ===== Vol d'un pays au suivant (dézoom → survol étoilé → zoom) =====
+    let tIdx = 0;
+    const TRAVEL_MS = 1900;
+    function flyToTour(idx) {
+      const from = TOURS[tIdx].center, to = TOURS[idx].center;
+      const rInterp = d3.interpolate(projection.rotate(), [-to[0], -to[1], 0]);
+      const geoI = d3.geoInterpolate(from, to);
+      const t0 = performance.now();
+      document.getElementById('dest-card').classList.remove('active');
+      tripArc = null;
+      let done = false;
+      function finish() {
+        if (done) return; done = true;
+        projection.rotate([-to[0], -to[1], 0]);
+        projection.scale(COUNTRY);
+        render();
+        document.getElementById('plane').style.opacity = 0;
+        tIdx = idx; runTour(idx);
+      }
+      function frame(now) {
+        if (done) return;
+        const e = d3.easeCubicInOut(Math.min(1, (now - t0) / TRAVEL_MS));
+        projection.rotate(rInterp(e));
+        projection.scale(COUNTRY - (COUNTRY - BASE) * Math.sin(Math.PI * e));
+        const pos = geoI(e), ah = geoI(Math.min(1, e + 0.03));
+        render();
+        updatePlane(pos[0], pos[1], ah[0], ah[1]);
+        if (e < 1) requestAnimationFrame(frame);
+        else finish();
+      }
+      requestAnimationFrame(frame);
+      setTimeout(finish, TRAVEL_MS + 700); // filet de sécurité : progresse même si rAF est gelé/ralenti
+    }
+
+    // ===== Défilé des villes d'un pays, dans l'ordre du planning =====
+    function runTour(idx) {
+      const t = TOURS[idx];
+      enterTour(idx);
+      const N = t.cities.length;
+      const hold = (N === 1) ? 2600 : Math.max(950, Math.min(1500, 9000 / N));
+      let i = 0;
+      (function step() {
+        showCity(t, i);
+        i++;
+        if (i < N) setTimeout(step, hold);
+        else setTimeout(() => flyToTour((idx + 1) % TOURS.length), hold + 500);
+      })();
+    }
+
+    // Reduced motion : globe fixe + diaporama des villes
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      projection.scale(BASE);
+      projection.rotate([-105, -22, 0]);
+      render();
+      const flat = [];
+      TOURS.forEach(t => t.cities.forEach((c, i) => flat.push({ t, c, i, N: t.cities.length })));
+      let k = 0;
+      function slide() {
+        const { t, c, i, N } = flat[k];
+        const card = document.getElementById('dest-card');
+        card.style.color = t.color;
+        setHeroPhoto(c.photo);
+        const thumb = document.getElementById('dest-img');
+        if (c.photo) { thumb.style.visibility = 'visible'; thumb.src = c.photo; } else { thumb.style.visibility = 'hidden'; }
+        const tintEl = document.getElementById('hpb-tint'); if (tintEl) tintEl.style.setProperty('--tint', t.color);
+        document.getElementById('dest-flag').textContent = t.flag;
+        document.getElementById('dest-name').textContent = c.n;
+        document.getElementById('dest-country').textContent = t.name;
+        document.getElementById('dest-nights').textContent = c.d;
+        document.getElementById('dest-date').textContent = t.dateLabel;
+        document.getElementById('dest-quote').textContent = t.quote;
+        document.getElementById('dest-order').textContent = (N > 1) ? (i + 1) + ' / ' + N : t.nights;
+        card.classList.add('active');
+        k = (k + 1) % flat.length;
+      }
+      slide();
+      setInterval(slide, 3600);
+      return;
+    }
+
+    // Lancement du grand tour
+    render();
+    runTour(0);
+  }
+
+  // ===== BIG DESTINATION PHOTO — crossfade between two stacked layers =====
+  let _hpbToggle = false;
+  function setHeroPhoto(src) {
+    const a = document.getElementById('hpb-a');
+    const b = document.getElementById('hpb-b');
+    if (!a || !b) return;
+    if (!src) { a.classList.remove('show'); b.classList.remove('show'); return; } // pas de photo → fond dégradé propre
+    const incoming = _hpbToggle ? a : b;
+    const outgoing = _hpbToggle ? b : a;
+    const probe = new Image();
+    probe.onload = () => {
+      incoming.src = src;
+      // force reflow so the Ken Burns transform re-triggers
+      void incoming.offsetWidth;
+      incoming.classList.add('show');
+      outgoing.classList.remove('show');
+      _hpbToggle = !_hpbToggle;
+    };
+    probe.onerror = () => { /* image manquante → on garde le dégradé de teinte */ };
+    probe.src = src;
+  }
+
+  // ===== ANIMATED STARFIELD (canvas, realistic twinkle + drift + shooting stars) =====
+  function initStarfield() {
+    const canvas = document.getElementById('starfield');
+    if (!canvas) return;
+    const scene = canvas.parentElement;
+    const ctx = canvas.getContext('2d');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const COLORS = ['rgba(255,255,255,', 'rgba(201,222,255,', 'rgba(255,232,192,'];
+    let W = 0, H = 0, stars = [], shooting = [], last = 0;
+
+    function build() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = scene.clientWidth; H = scene.clientHeight;
+      if (!W || !H) return;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const n = Math.max(140, Math.min(340, Math.round(W * H / 5200)));
+      stars = new Array(n).fill(0).map(() => {
+        const depth = Math.random();            // 0 = lointain, 1 = proche
+        return {
+          x: Math.random() * W, y: Math.random() * H,
+          r: 0.4 + depth * 1.5,
+          a: 0.4 + Math.random() * 0.55,
+          tw: Math.random() * Math.PI * 2,
+          sp: 0.3 + Math.random() * 0.9,
+          dx: 0.02 + depth * 0.14,              // parallaxe : les proches dérivent plus vite
+          c: COLORS[Math.random() < 0.14 ? 1 : (Math.random() < 0.05 ? 2 : 0)]
+        };
+      });
+    }
+
+    function spawnShoot() {
+      shooting.push({
+        x: W * (0.25 + Math.random() * 0.4), y: Math.random() * H * 0.45,
+        sp: 7 + Math.random() * 6, ang: Math.PI * (0.12 + Math.random() * 0.06),
+        len: 0, maxLen: 90 + Math.random() * 130
+      });
+    }
+
+    function drawStatic() {
+      ctx.clearRect(0, 0, W, H);
+      for (const s of stars) {
+        ctx.beginPath(); ctx.fillStyle = s.c + s.a.toFixed(3) + ')';
+        ctx.arc(s.x, s.y, s.r, 0, 6.2832); ctx.fill();
+      }
+    }
+
+    function frame(t) {
+      const dt = Math.min(50, t - last); last = t;
+      ctx.clearRect(0, 0, W, H);
+      for (const s of stars) {
+        s.tw += 0.02 * s.sp;
+        const k = 0.55 + 0.45 * Math.sin(s.tw);
+        ctx.beginPath();
+        ctx.fillStyle = s.c + (s.a * k).toFixed(3) + ')';
+        ctx.arc(s.x, s.y, s.r, 0, 6.2832); ctx.fill();
+        if (s.r > 0.95) {                       // léger halo sur les grosses étoiles
+          ctx.beginPath();
+          ctx.fillStyle = s.c + (s.a * k * 0.22).toFixed(3) + ')';
+          ctx.arc(s.x, s.y, s.r * 2.6, 0, 6.2832); ctx.fill();
+        }
+        s.x -= s.dx * (dt / 16.67);
+        if (s.x < -3) { s.x = W + 3; s.y = Math.random() * H; }
+      }
+      for (let i = shooting.length - 1; i >= 0; i--) {
+        const sh = shooting[i];
+        const vx = Math.cos(sh.ang) * sh.sp, vy = Math.sin(sh.ang) * sh.sp;
+        sh.x += vx; sh.y += vy; sh.len = Math.min(sh.maxLen, sh.len + sh.sp * 1.5);
+        const tx = sh.x - vx * (sh.len / sh.sp), ty = sh.y - vy * (sh.len / sh.sp);
+        const g = ctx.createLinearGradient(sh.x, sh.y, tx, ty);
+        g.addColorStop(0, 'rgba(255,255,255,0.9)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(tx, ty); ctx.stroke();
+        if (sh.x > W + 60 || sh.y > H + 60) shooting.splice(i, 1);
+      }
+      if (Math.random() < 0.004 && shooting.length < 2) spawnShoot();
+      requestAnimationFrame(frame);
+    }
+
+    build();
+    let rt;
+    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { build(); if (reduce) drawStatic(); }, 200); });
+    if (reduce) { drawStatic(); return; }
+    requestAnimationFrame(frame);
+  }
+
+  // Task 6: Japan TripMap
+  const japanMapEl = document.getElementById('map-japan');
+  if (japanMapEl) {
+    const japanMap = new TripMap(japanMapEl, {
+      center: [36, 136], zoom: 5.4,
+      color: '#FF3D7F',
+      stops: [
+        { name: 'Tokyo',       lat: 35.68, lng: 139.65, nights: 6, days: 'J1–J6',    photo: '1540959733332-eab4deabeeaf', keyword: 'skyline' },
+        { name: 'Kawaguchiko', lat: 35.50, lng: 138.75, nights: 2, days: 'J7–J8',    photo: '1490761668535-35497054764b', keyword: 'fuji' },
+        { name: 'Matsumoto',   lat: 36.24, lng: 137.97, nights: 1, days: 'J9',       photo: '1772170034450-a4f51b9f9a02', keyword: 'château' },
+        { name: 'Takayama',    lat: 36.14, lng: 137.25, nights: 2, days: 'J10–J11',  photo: '1676917350107-964194678afa', keyword: 'edo' },
+        { name: 'Kanazawa',    lat: 36.56, lng: 136.65, nights: 2, days: 'J12–J13',  photo: '1747547665435-299b2f28a028', keyword: 'kenroku-en' },
+        { name: 'Kyoto',       lat: 35.01, lng: 135.76, nights: 6, days: 'J14–J19',  photo: '1528360983277-13d401cdc186', keyword: 'torii' },
+        { name: 'Osaka',       lat: 34.69, lng: 135.50, nights: 2, days: 'J20–J21',  photo: '1565117082819-e40a7fddfd85', keyword: 'takoyaki' },
+        { name: 'Koyasan',     lat: 34.21, lng: 135.58, nights: 1, days: 'J22',      photo: '1768570141186-a0551c89d116', keyword: 'shukubo' },
+        { name: 'Hiroshima',   lat: 34.39, lng: 132.46, nights: 1, days: 'J23',      photo: '1780921457266-024a7d831f34', keyword: 'paix' },
+        { name: 'Miyajima',    lat: 34.29, lng: 132.32, nights: 1, days: 'J24–J25',  photo: '1509316785289-025f5b846b35', keyword: 'torii flottant' },
+        { name: 'Kumamoto',    lat: 32.80, lng: 130.71, nights: 1, days: 'J25 soir', photo: '1748877637317-b3733dd156a3', keyword: 'basashi' },
+        { name: 'Aso',         lat: 32.94, lng: 131.05, nights: 1, days: 'J26',      photo: '1755384614731-602accc8a2ee', keyword: 'volcan' },
+        { name: 'Beppu',       lat: 33.28, lng: 131.50, nights: 1, days: 'J27',      photo: '1752917868539-c4d8e3bc0804', keyword: 'onsen' },
+        { name: 'Fukuoka',     lat: 33.59, lng: 130.40, nights: 2, days: 'J28–J29',  photo: '1757482040471-b924707f6199', keyword: 'yatai' }
+      ]
+    });
+    new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) japanMap.init(); });
+    }, { rootMargin: '150px' }).observe(japanMapEl);
+  }
+
+  // Thailand TripMap
+  const thailandMapEl = document.getElementById('map-thailand');
+  if (thailandMapEl) {
+    const thailandMap = new TripMap(thailandMapEl, {
+      center: [14, 100], zoom: 5.2,
+      color: '#F5A623',
+      stops: [
+        { name: 'Bangkok',     lat: 13.75, lng: 100.50, nights: 4, days: 'J1–J4',   photo: '', keyword: 'temples' },
+        { name: 'Chiang Mai',  lat: 18.79, lng: 98.99,  nights: 4, days: 'J5–J8',   photo: '', keyword: 'doi suthep' },
+        { name: 'Chiang Rai',  lat: 19.91, lng: 99.84,  nights: 2, days: 'J9–J10',  photo: '', keyword: 'white temple' },
+        { name: 'Khao Sok',    lat: 8.91,  lng: 98.53,  nights: 2, days: 'J11–J12', photo: '', keyword: 'lac flottant' },
+        { name: 'Phang Nga',   lat: 8.45,  lng: 98.53,  nights: 1, days: 'J13',     photo: '', keyword: 'baie' },
+        { name: 'Krabi',       lat: 8.09,  lng: 98.91,  nights: 6, days: 'J14–J18 + J22', photo: '', keyword: 'railay' },
+        { name: 'Koh Phi Phi', lat: 7.74,  lng: 98.77,  nights: 3, days: 'J19–J21', photo: '', keyword: 'maya bay' }
+      ]
+    });
+    new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) thailandMap.init(); });
+    }, { rootMargin: '150px' }).observe(thailandMapEl);
+  }
+
+  // Vietnam TripMap
+  const vietnamMapEl = document.getElementById('map-vietnam');
+  if (vietnamMapEl) {
+    const vietnamMap = new TripMap(vietnamMapEl, {
+      center: [16, 106], zoom: 5.2,
+      color: '#2ECC71',
+      stops: [
+        { name: 'Hô Chi Minh-Ville', lat: 10.82, lng: 106.63, nights: 3, days: 'J1–J3',   photo: '', keyword: 'saigon' },
+        { name: 'Hoi An',            lat: 15.88, lng: 108.34, nights: 4, days: 'J4–J7',   photo: '', keyword: 'lanternes' },
+        { name: 'Phong Nha',         lat: 17.59, lng: 106.28, nights: 2, days: 'J8–J9',   photo: '', keyword: 'grottes' },
+        { name: 'Tam Coc',           lat: 20.25, lng: 105.92, nights: 3, days: 'J11–J13', photo: '', keyword: 'trang an' },
+        { name: 'Pu Luong',          lat: 20.48, lng: 105.16, nights: 3, days: 'J14–J16', photo: '', keyword: 'rizières' },
+        { name: 'Hanoï',             lat: 21.03, lng: 105.85, nights: 3, days: 'J17–J18, J21', photo: '', keyword: 'vieux quartier' },
+        { name: 'Baie de Lan Ha',    lat: 20.78, lng: 107.07, nights: 2, days: 'J19–J20', photo: '', keyword: 'croisière' }
+      ]
+    });
+    new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) vietnamMap.init(); });
+    }, { rootMargin: '150px' }).observe(vietnamMapEl);
+  }
+
+  // Task 7: Korea TripMap
+  const koreaMapEl = document.getElementById('map-korea');
+  if (koreaMapEl) {
+    const koreaMap = new TripMap(koreaMapEl, {
+      center: [36.5, 127.8], zoom: 7,
+      color: '#3D9EFF',
+      stops: [
+        { name: 'Busan',  lat: 35.18, lng: 129.08, nights: 3, days: 'J1–J3', photo: '1601621915196-2621bfb0cd6e', keyword: 'jagalchi' },
+        { name: 'Gyeongju', lat: 35.85, lng: 129.22, nights: 2, days: 'J4–J5', photo: '', keyword: 'bulguksa' },
+        { name: 'Seoul',  lat: 37.57, lng: 126.98, nights: 4, days: 'J6–J9', photo: '1563461661026-49631dd5d68e', keyword: 'gwangjang' }
+      ]
+    });
+    new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) koreaMap.init(); });
+    }, { rootMargin: '150px' }).observe(koreaMapEl);
+  }
+
+  // Task 8: China + HK map with per-segment coloring (inline, not TripMap —
+  // each of the 3 route legs is colored with the DESTINATION city's color)
+  const chinaMapEl = document.getElementById('map-china');
+  if (chinaMapEl) {
+    function initChinaMap() {
+      if (chinaMapEl.dataset.init === '1') return;
+      chinaMapEl.dataset.init = '1';
+
+      const stops = [
+        { name: 'Shanghai',    lat: 31.23, lng: 121.47, nights: 5, days: 'S1–S5',   photo: '',                          keyword: 'bund',    cityColor: '#3D9EFF' },
+        { name: 'Chongqing',   lat: 29.56, lng: 106.55, nights: 4, days: 'C1–C4',   photo: '1594392173729-8fbe99c18a1c', keyword: 'hotpot',  cityColor: '#FF4A2A' },
+        { name: 'Wulong',      lat: 29.43, lng: 107.80, nights: 1, days: 'C5',      photo: '',                          keyword: 'arches',  cityColor: '#1ABC9C' },
+        { name: 'Zhangjiajie', lat: 29.34, lng: 110.48, nights: 4, days: 'C6–C9',   photo: '1510414842594-a61c69b5ae57', keyword: 'avatar',  cityColor: '#2ECC71' },
+        { name: 'Shenzhen',    lat: 22.54, lng: 114.06, nights: 2, days: 'C10–C11', photo: '1636900741619-97032a3d4794', keyword: 'tech',    cityColor: '#FF9F1C' },
+        { name: 'Hong Kong',   lat: 22.32, lng: 114.17, nights: 6, days: 'C12–C17', photo: '1506634572416-48cdfe530110', keyword: 'harbour', cityColor: '#B85CFF' }
+      ];
+
+      const map = L.map(chinaMapEl, {
+        center: [28, 114], zoom: 5,
+        scrollWheelZoom: false, attributionControl: false
+      });
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 16 }).addTo(map);
+
+      // Per-segment coloring: each segment colored with the DESTINATION city's color
+      for (let i = 0; i < stops.length - 1; i++) {
+        const from = stops[i], to = stops[i + 1];
+        // Shadow underneath
+        L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
+          color: '#000', weight: 6, opacity: 0.35
+        }).addTo(map);
+        // Colored segment
+        L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
+          color: to.cityColor, weight: 3, opacity: 0.9, dashArray: '6,4'
+        }).addTo(map);
+      }
+
+      // Numbered markers, each in city color, with hover tooltip
+      stops.forEach((s, i) => {
+        const num = i + 1;
+        const icon = L.divIcon({
+          className: 'trip-marker',
+          html: `<span class="trip-marker-dot" style="--c:${s.cityColor}">${num}</span>`,
+          iconSize: [34, 34], iconAnchor: [17, 17]
+        });
+        const marker = L.marker([s.lat, s.lng], { icon }).addTo(map);
+        const popupHtml = `
+          <div class="trip-popup">
+            <img src="https://images.unsplash.com/photo-${s.photo}?auto=format&fit=crop&w=200&q=80"
+                 alt="" loading="lazy" onerror="this.style.display='none'">
+            <div class="trip-popup-body">
+              <div class="trip-popup-name">${s.name}</div>
+              <div class="trip-popup-meta">${s.nights} nuit${s.nights > 1 ? 's' : ''} · ${s.days}</div>
+              <div class="trip-popup-tag" style="--c:${s.cityColor}">${s.keyword}</div>
+            </div>
+          </div>`;
+        marker.bindTooltip(popupHtml, {
+          direction: 'top', offset: [0, -18], opacity: 1,
+          className: 'trip-tooltip', permanent: false, sticky: false
+        });
+      });
+    }
+
+    new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) initChinaMap(); });
+    }, { rootMargin: '150px' }).observe(chinaMapEl);
+  }
+
+  // Version téléphone : consultation hors connexion une fois le site ouvert (pas en fichier local)
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('planning-sw.js').catch(() => {});
+  }
+
+  // Task 9: Wire last-updated date
+  const lu = document.getElementById('last-updated');
+  if (lu) lu.textContent = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  // Task 10: scroll reveal, nav active highlighter, checklist wiring, footer date
+  const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('vis');
+        revealObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+  document.querySelectorAll('.phase').forEach(p => revealObs.observe(p));
+
+  const navFlags = document.querySelectorAll('.nav-flag');
+  const navObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        navFlags.forEach(f => f.classList.toggle('is-active', f.dataset.country === id));
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  COUNTRIES.forEach(c => {
+    const s = document.getElementById(c);
+    if (s) navObs.observe(s);
+  });
+
+  function wireChecklist(box) {
+    const country = box.dataset.country;
+    const storageKey = 'asia2027_ck_' + country;
+    const items = box.querySelectorAll('.check-item input[type="checkbox"]');
+    const fill  = box.querySelector('.progress-fill');
+    const count = box.querySelector('.progress-count');
+    const total = box.querySelector('.progress-total');
+    if (total) total.textContent = items.length;
+
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(storageKey) || '[]'); }
+    catch { saved = []; }
+    const set = new Set(saved);
+
+    function refresh() {
+      let done = 0;
+      items.forEach(cb => {
+        const label = cb.closest('.check-item');
+        if (cb.checked) { label.classList.add('done'); done++; }
+        else label.classList.remove('done');
+      });
+      if (fill)  fill.style.width  = items.length ? (done / items.length * 100).toFixed(1) + '%' : '0%';
+      if (count) count.textContent = done;
+    }
+
+    items.forEach(cb => {
+      if (set.has(cb.dataset.id)) cb.checked = true;
+      cb.addEventListener('change', () => {
+        if (cb.checked) set.add(cb.dataset.id);
+        else set.delete(cb.dataset.id);
+        try { localStorage.setItem(storageKey, JSON.stringify([...set])); } catch {}
+        refresh();
+      });
+    });
+    refresh();
+  }
+  document.querySelectorAll('.checklist').forEach(wireChecklist);
+
+  // --- Twemoji : remplace tous les emojis (dont les drapeaux) par des SVG cross-platform ---
+  if (window.twemoji) {
+    twemoji.parse(document.body, {
+      folder: 'svg',
+      ext: '.svg',
+      base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'
+    });
+  }
+
+  // --- Photo overrides system ---
+  const PHOTO_STORAGE = 'asia2027_photos';
+  function loadPhotoOverrides() {
+    try { return JSON.parse(localStorage.getItem(PHOTO_STORAGE) || '{}'); }
+    catch { return {}; }
+  }
+  function savePhotoOverride(slug, src) {
+    const o = loadPhotoOverrides();
+    if (src) o[slug] = src; else delete o[slug];
+    localStorage.setItem(PHOTO_STORAGE, JSON.stringify(o));
+  }
+  function applyPhotoOverrides() {
+    const o = loadPhotoOverrides();
+    document.querySelectorAll('img[data-slug]').forEach(img => {
+      const slug = img.dataset.slug;
+      if (o[slug]) {
+        if (!img.dataset.originalSrc) img.dataset.originalSrc = img.src;
+        img.src = o[slug];
+      } else if (img.dataset.originalSrc) {
+        img.src = img.dataset.originalSrc;
+      }
+    });
+  }
+  applyPhotoOverrides();
+
+  // --- Photo editor UI ---
+  const peFab = document.getElementById('pe-fab');
+  const peModal = document.getElementById('pe-modal');
+  const peList = document.getElementById('pe-list');
+  const peClose = document.getElementById('pe-close');
+
+  function renderPhotoEditor() {
+    const overrides = loadPhotoOverrides();
+    peList.innerHTML = '';
+    // Group by prefix (th, vn, jp, kr, cn) for readability
+    const groups = { 'th': '🇹🇭 Thaïlande', 'vn': '🇻🇳 Vietnam', 'jp': '🇯🇵 Japon', 'kr': '🇰🇷 Corée', 'cn': '🇨🇳 Chine + HK' };
+    const buckets = { th: [], vn: [], jp: [], kr: [], cn: [] };
+    document.querySelectorAll('img[data-slug]').forEach(img => {
+      const slug = img.dataset.slug;
+      const prefix = slug.split('-')[0];
+      if (buckets[prefix]) buckets[prefix].push({ img, slug });
+    });
+    Object.keys(groups).forEach(prefix => {
+      if (!buckets[prefix].length) return;
+      const head = document.createElement('div');
+      head.className = 'pe-group-head';
+      head.textContent = groups[prefix];
+      peList.appendChild(head);
+      buckets[prefix].forEach(({ img, slug }) => {
+        const label = img.dataset.label || slug;
+        const isOverridden = !!overrides[slug];
+        const row = document.createElement('div');
+        row.className = 'pe-row';
+        row.dataset.slug = slug;
+        row.innerHTML = `
+          <img class="pe-thumb" src="${img.src}" alt="">
+          <div class="pe-info">
+            <div class="pe-label">${label}</div>
+            <div class="pe-slug">${slug}</div>
+            <div class="pe-status ${isOverridden ? '' : 'default'}">${isOverridden ? '✓ Photo personnalisée' : 'Photo par défaut'}</div>
+          </div>
+          <div class="pe-actions">
+            <button class="pe-btn pe-edit" type="button">Changer</button>
+            ${isOverridden ? '<button class="pe-btn reset pe-reset" type="button" title="Restaurer">↺</button>' : ''}
+          </div>
+          <div class="pe-inline-input">
+            <label>Fichier :</label>
+            <input type="file" accept="image/*" class="pe-file">
+            <label>ou URL :</label>
+            <input type="url" placeholder="https://..." class="pe-url">
+            <button class="pe-btn pe-apply" type="button">OK</button>
+          </div>
+        `;
+        peList.appendChild(row);
+      });
+    });
+    // Re-parse emojis in the freshly rendered modal
+    if (window.twemoji) twemoji.parse(peList);
+  }
+
+  function openPhotoEditor() { renderPhotoEditor(); peModal.classList.add('open'); }
+  function closePhotoEditor() { peModal.classList.remove('open'); }
+
+  peFab.addEventListener('click', openPhotoEditor);
+  peClose.addEventListener('click', closePhotoEditor);
+  peModal.addEventListener('click', (e) => {
+    if (e.target.id === 'pe-modal') { closePhotoEditor(); return; }
+    const row = e.target.closest('.pe-row');
+    if (!row) return;
+    const slug = row.dataset.slug;
+
+    if (e.target.classList.contains('pe-edit')) {
+      row.classList.add('editing');
+    } else if (e.target.classList.contains('pe-reset')) {
+      savePhotoOverride(slug, null);
+      applyPhotoOverrides();
+      renderPhotoEditor();
+    } else if (e.target.classList.contains('pe-apply')) {
+      const fileInput = row.querySelector('.pe-file');
+      const urlInput = row.querySelector('.pe-url');
+      if (fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          savePhotoOverride(slug, reader.result);
+          applyPhotoOverrides();
+          renderPhotoEditor();
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else if (urlInput.value.trim()) {
+        savePhotoOverride(slug, urlInput.value.trim());
+        applyPhotoOverrides();
+        renderPhotoEditor();
+      }
+    }
+  });
+  // Escape to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && peModal.classList.contains('open')) closePhotoEditor();
+  });
+});
+  </script>
+</body>
+</html>
