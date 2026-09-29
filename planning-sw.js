@@ -1,7 +1,7 @@
 // Asie 2027 · planning — fonctionnement hors connexion (lecture seule, aucune synchronisation).
 // La page et ses bibliothèques sont gardées en cache à l'installation ; les photos et les tuiles de carte
 // le sont au fil de la consultation. Changer VERSION à chaque mise à jour du site.
-const VERSION = 'asie27-v2';
+const VERSION = 'asie27-v3';
 const IMG = 'asie27-img';          // photos, drapeaux, tuiles de carte (cache séparé, gardé entre les versions)
 const IMG_MAX = 600;               // au-delà, les plus anciennes sont supprimées
 const CORE = ['./', 'planning.webmanifest', 'appli_planning/icon-192.png', 'appli_planning/icon-512.png', 'appli_planning/apple-touch-icon.png'];
@@ -45,7 +45,9 @@ self.addEventListener('fetch', (e) => {
   // La page : réseau d'abord (4 s max) pour recevoir les mises à jour, sinon la copie en cache
   if (req.mode === 'navigate') {
     e.respondWith(caches.open(VERSION).then(async (cache) => {
-      const net = fetch(req).then((res) => { if (res && res.ok) cache.put('./', res.clone()); return res; });
+      // cache: 'no-cache' → toujours revérifier auprès du serveur (sinon le cache HTTP peut resservir une ancienne page)
+      const net = fetch(new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' }))
+        .then((res) => { if (res && res.ok) cache.put('./', res.clone()); return res; });
       const timeout = new Promise((resolve) => setTimeout(resolve, 4000, null));
       const res = await Promise.race([net.catch(() => null), timeout]);
       return res || (await cache.match('./')) || net;

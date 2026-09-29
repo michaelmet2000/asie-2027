@@ -2669,6 +2669,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     // Centre géographique de chaque pays (pour cadrer le globe)
     TOURS.forEach(t => { t.center = d3.geoCentroid({ type:'MultiPoint', coordinates: t.cities.map(c => [c.lng, c.lat]) }); });
+    window.__asiePhotos = TOURS.flatMap(t => t.cities.map(c => c.photo)).filter(Boolean); // pour la mise en cache hors connexion
     // Pays du voyage — couleurs de remplissage des continents
     const VISITED = { 756:'#E8C97A', 764:'#F5A623', 704:'#2ECC71', 392:'#FF3D7F', 410:'#3D9EFF', 156:'#FF4A2A', 344:'#B85CFF' };
     // Écran en portrait (téléphone) : le viewBox 1200×700 est rogné sur les côtés (slice), seule la bande centrale
@@ -3173,6 +3174,44 @@ document.addEventListener('DOMContentLoaded', () => {
   // Version téléphone : consultation hors connexion une fois le site ouvert (pas en fichier local)
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     navigator.serviceWorker.register('planning-sw.js').catch(() => {});
+    // Sans ça, une photo n'est disponible hors connexion qu'après avoir été affichée une fois (le globe met
+    // plusieurs minutes à passer toutes les villes, les galeries ne se chargent qu'au défilement).
+    // On télécharge donc en arrière-plan toutes les photos et le fond des 5 cartes dès qu'il y a du réseau.
+    window.addEventListener('load', () => setTimeout(preparerHorsConnexion, 4000));
+  }
+
+  function preparerHorsConnexion() {
+    if (!('caches' in window) || !navigator.onLine || (navigator.connection && navigator.connection.saveData)) return;
+    const urls = new Set();
+    document.querySelectorAll('img[data-slug]').forEach(img => {
+      const s = img.getAttribute('src');
+      if (s && !s.startsWith('data:')) urls.add(new URL(s, location.href).href);
+    });
+    (window.__asiePhotos || []).forEach(u => urls.add(new URL(u, location.href).href));
+    // Fond des cartes : 5 × 5 tuiles autour du centre de chaque carte, au zoom affiché au départ
+    const tuile = (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${z}/${y}/${x}`;
+    const tx = (lng, z) => Math.floor((lng + 180) / 360 * 2 ** z);
+    const ty = (lat, z) => { const r = lat * Math.PI / 180; return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z); };
+    [[14, 100, 5], [16, 106, 5], [36, 136, 5], [36.5, 127.8, 7], [28, 114, 5]].forEach(([lat, lng, z]) => {
+      const cx = tx(lng, z), cy = ty(lat, z);
+      for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) urls.add(tuile(z, cx + dx, cy + dy));
+    });
+    caches.open('asie27-img').then(async (cache) => {
+      const liste = [...urls];
+      let i = 0;
+      const suivant = async () => {
+        while (i < liste.length) {
+          const u = liste[i++];
+          if (await cache.match(u)) continue;
+          try {
+            let r = await fetch(u, { mode: 'cors', credentials: 'omit' }).catch(() => null);
+            if (!r || !r.ok) r = await fetch(u, { mode: 'no-cors' }).catch(() => null);
+            if (r && (r.ok || r.type === 'opaque')) await cache.put(u, r);
+          } catch (e) { /* photo introuvable : tant pis */ }
+        }
+      };
+      await Promise.all([suivant(), suivant(), suivant(), suivant()]);
+    }).catch(() => {});
   }
 
   // Task 9: Wire last-updated date
