@@ -491,6 +491,33 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   }
   .tile { scroll-snap-align: center; }
 }
+/* Ordinateur (et tablette) : grand diaporama à gauche, photo entière (fond flou derrière), la Terre à droite. */
+.hpb-flou { display: none; }
+@media (min-width: 641px) {
+  #hero { --ph-top: 92px; --ph-bas: 108px; --ph-g: 28px; --ph-l: min(64%, calc(100% - 400px)); }
+  .hero-photo-bg {
+    inset: auto; top: var(--ph-top); left: var(--ph-g); bottom: var(--ph-bas); width: var(--ph-l);
+    z-index: 2; border-radius: 20px; background: #0B0D1C;
+    box-shadow: 0 26px 70px -18px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1);
+  }
+  .hpb-flou { display: block; position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(30px) brightness(0.55) saturate(1.2); transition: background-image 900ms ease; }
+  .hpb-img { object-fit: contain; filter: saturate(1.06); transform: scale(1); transition: opacity 1200ms ease; }
+  .hpb-img.show { transform: scale(1); }
+  .hpb-tint { opacity: 0.12; }
+  .hpb-overlay { background: linear-gradient(180deg, rgba(4,6,16,0) 55%, rgba(4,6,16,0.55) 78%, rgba(4,6,16,0.92) 100%); }
+  .dest-card {
+    left: var(--ph-g); width: var(--ph-l); top: auto; bottom: var(--ph-bas);
+    transform: translateY(10px); background: none; border: 0; box-shadow: none;
+    backdrop-filter: none; -webkit-backdrop-filter: none; border-radius: 0 0 20px 20px;
+  }
+  .dest-card.active { transform: none; }
+  .dest-card-photo { display: none; }
+  .dest-card-body { padding: 0 30px 24px; max-width: 680px; }
+  .dest-card-name { font-size: 42px; text-shadow: 0 2px 16px rgba(0,0,0,0.8); }
+  .dest-card-meta { color: rgba(240,240,255,0.88); }
+  .dest-card-quote { border-top: 0; padding-top: 0; margin-top: 10px; font-size: 15px; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
+  .marker-label { font-size: 13px; }
+}
 /* Téléphone en portrait : la photo de la ville devient un grand cadre bien net, avec le nom de l'étape dessus ;
    compte à rebours et petit globe en dessous (le globe se place tout seul, voir initHeroGlobe). */
 @media (max-width: 640px) and (orientation: portrait) {
@@ -1184,6 +1211,25 @@ body.edition .phase { opacity: 1 !important; transform: none !important; }
   #ed-barre { font-size: 12px; }
   .ed-b { padding: 7px 9px; }
 }
+/* Photos : boutons sur les images, choix de photo */
+.pe-fab { display: none !important; } /* ancien outil 🖼️ : remplacé par « 📷 » dans le mode ✏️ (photos partagées) */
+.banner, .gallery-item { position: relative; }
+.ed-sur-photo { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 5; }
+.ed-sur-photo .ed-b { background: rgba(13,13,31,0.85); backdrop-filter: blur(6px); }
+.ed-galerie-plus { display: flex; align-items: center; justify-content: center; min-height: 160px; border: 1px dashed var(--ac); border-radius: 12px; }
+.ed-hero-photo { display: none; }
+body.edition .ed-hero-photo { display: block; position: absolute; z-index: 6; top: calc(var(--ph-top, 92px) + 12px); left: calc(var(--ph-g, 14px) + 12px); }
+body.edition .ed-hero-photo .ed-b { background: rgba(13,13,31,0.88); border-color: var(--ac); padding: 8px 12px; }
+.ed-photos { position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,0.78); backdrop-filter: blur(6px); display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 20px 10px; }
+.ed-photos .ed-dialogue { max-width: 860px; }
+.ed-photo-actuelle { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 12px; color: var(--tx-mut); }
+.ed-photo-actuelle img { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; }
+.ed-recherche input, .ed-url { flex: 1; min-width: 160px; background: var(--bg); color: var(--tx); border: 1px solid var(--bd); border-radius: 10px; padding: 9px 10px; font: 15px var(--font-body); }
+.ed-grille-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; max-height: 55vh; overflow-y: auto; }
+.ed-grille-photos button { padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: var(--s2); cursor: pointer; aspect-ratio: 3 / 2; }
+.ed-grille-photos button:hover, .ed-grille-photos button:focus { border-color: var(--ac); }
+.ed-grille-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ed-grille-photos .ed-texte { grid-column: 1 / -1; }
 @media print { #ed-fab, #ed-barre, .ed-ui, #ed-toast { display: none !important; } }
   </style>
 </head>
@@ -1196,6 +1242,7 @@ body.edition .phase { opacity: 1 !important; transform: none !important; }
     <section id="hero">
 <div class="hero-scene" aria-hidden="true">
   <div class="hero-photo-bg" aria-hidden="true">
+    <div class="hpb-flou" id="hpb-flou"></div>
     <img class="hpb-img" id="hpb-a" alt="">
     <img class="hpb-img" id="hpb-b" alt="">
     <div class="hpb-tint" id="hpb-tint"></div>
@@ -1490,7 +1537,20 @@ function afficherPlanning() {
   document.getElementById('hero-title').innerHTML = esc(P.titre).replace(' · ', ' <span class="accent">·</span> ');
   document.getElementById('hero-sub').textContent = `${resume} · ${P.depart.nom} → ${premier ? premier.nom : '…'} → ${dernier ? dernier.nom : '…'}`;
   document.getElementById('countdown-label').textContent = `${fmtJour(P.depart.date)} ${P.depart.date.slice(0, 4)} · ${P.depart.heure.replace(':', 'h')} · ${P.depart.nom} → ${premier ? premier.nom : '…'}`;
-  const pied = () => { const f = document.getElementById('footer-line'); if (f) f.textContent = `Asie ${P.depart.date.slice(0, 4)} · un printemps · ${resume}`; };
+  const credits = () => {
+    const d = document.getElementById('credits-choisis');
+    if (!d) return;
+    const vus = new Set(), items = [];
+    [P.depart, ...P.pays.flatMap((p) => [p.banniere, ...(p.galerie || []), ...Object.values(p.lieux || {})])].forEach((o) => {
+      const c = o && o.credit;
+      if (!c || !c.page || vus.has(c.page)) return;
+      vus.add(c.page);
+      items.push(`<li><a href="${esc(c.page)}" target="_blank" rel="noopener">${esc(decodeURIComponent(c.page.split('File:')[1] || 'photo').replace(/_/g, ' '))}</a> — ${esc(c.auteur || '?')} · ${esc(c.licence || '?')}</li>`);
+    });
+    d.hidden = !items.length;
+    d.querySelector('ul').innerHTML = items.join('');
+  };
+  const pied = () => { credits(); const f = document.getElementById('footer-line'); if (f) f.textContent = `Asie ${P.depart.date.slice(0, 4)} · un printemps · ${resume}`; };
   pied();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pied, { once: true });
   document.title = `Asie ${P.depart.date.slice(0, 4)} — ${resume.replace(' · ', ', ')}`;
@@ -1580,6 +1640,7 @@ function initCartes() {
     <p>Les autres photos viennent d'Unsplash.</p>
   </details>
   <!-- /CREDITS -->
+  <details class="footer-credits" id="credits-choisis" hidden><summary>Crédits des photos choisies</summary><ul></ul></details>
   <div class="footer-sub">Planifié avec ♥ · dernière mise à jour <span id="last-updated"></span></div>
 </div></footer>
   <!-- Photo editor UI (floating FAB + modal) -->
@@ -1607,7 +1668,8 @@ const COUNTRIES = PLANNING.pays.map((p) => p.id);
 // Task 5: TripMap reusable Leaflet map component
 // Vignette d'une étape sur les cartes : la photo du globe pour la même ville (vérifiée à l'œil), sinon l'ancienne photo Unsplash.
 function photoEtape(name, id) {
-  const p = (window.__asieCityPhoto || {})[name];
+  const lieu = (window.PLANNING ? PLANNING.pays : []).map((x) => x.lieux && x.lieux[name]).find(Boolean);
+  const p = (lieu && lieu.photo) || (window.__asieCityPhoto || {})[name];
   return p || (id ? `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=200&q=80` : '');
 }
 
@@ -1699,29 +1761,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const U = id => id ? 'https://images.unsplash.com/photo-' + id + '?auto=format&fit=crop&w=1400&q=80' : '';
     // Le voyage par PAYS : à l'arrivée, toutes les villes défilent dans l'ordre du planning.
     const TOURS = construireTours(PLANNING);
+    window.__TOURS = TOURS;
     // Centre géographique de chaque pays (pour cadrer le globe)
     TOURS.forEach(t => { t.center = d3.geoCentroid({ type:'MultiPoint', coordinates: t.cities.map(c => [c.lng, c.lat]) }); });
     window.__asiePhotos = TOURS.flatMap(t => t.cities.map(c => c.photo)).filter(Boolean); // pour la mise en cache hors connexion
     window.__asieCityPhoto = Object.fromEntries(TOURS.flatMap(t => t.cities.map(c => [c.n, c.photo]))); // vignettes des cartes
     // Pays du voyage — couleurs de remplissage des continents
     const VISITED = couleursPays(PLANNING);
-    // Écran en portrait (téléphone) : le viewBox 1200×700 est rogné sur les côtés (slice), seule la bande centrale
-    // reste visible. Le globe est alors centré et réduit à la largeur visible, dans l'espace libre au-dessus de la carte.
-    // En portrait, un petit globe à droite sous le compte à rebours : la grande photo de la ville garde la place.
+    // Place du globe, calculée sur l'écran puis convertie dans le repère du dessin (viewBox 1200×700, rogné « slice »).
+    // Ordinateur : à droite du grand cadre photo (diaporama). Téléphone : à droite sous la photo, en mordant un peu dessus.
     const sceneBox = svg.getBoundingClientRect();
-    const portrait = sceneBox.width > 0 && sceneBox.width / sceneBox.height < 1;
-    const k = portrait ? sceneBox.height / 700 : 1;                 // pixels d'écran par unité du viewBox
-    const visibleW = portrait ? sceneBox.width / k : 1200;
-    // Téléphone : petit globe à droite, entre le cadre photo et les tuiles des pays (à côté du compte à rebours)
+    const W = sceneBox.width || 1200, H = sceneBox.height || 700;
+    const k = Math.max(W / 1200, H / 700);                          // pixels d'écran par unité du viewBox
+    const portrait = W / H < 1;
     const photoBox = document.querySelector('.hero-photo-bg')?.getBoundingClientRect();
     const tilesBox = document.querySelector('.hero-tiles')?.getBoundingClientRect();
-    const sousPhoto = photoBox ? photoBox.bottom - sceneBox.top : 170;
-    const surTuiles = tilesBox ? tilesBox.top - sceneBox.top : sceneBox.height - 90;
-    const rEcran = Math.max(40, Math.min(95, (surTuiles - sousPhoto - 22) / 2)); // rayon du globe à l'écran (px)
-    const CX = portrait ? Math.round(600 + visibleW / 2 - (rEcran + 18) / k) : 950;
-    const CY = portrait ? Math.round((sousPhoto + surTuiles) / 2 / k) : 335;
-    const COUNTRY = portrait ? Math.round(rEcran / k) : 215;        // échelle « plongée sur le pays » (les villes défilent)
-    const BASE = portrait ? Math.round(COUNTRY * 0.82) : 180;       // échelle « survol » (globe entier dans les étoiles, pendant les vols)
+    const surTuiles = tilesBox && tilesBox.height ? tilesBox.top - sceneBox.top : H - 90;
+    let sx, sy, rEcran;
+    if (portrait) {
+      const sousPhoto = photoBox ? photoBox.bottom - sceneBox.top : 170;
+      rEcran = Math.max(50, Math.min(125, (surTuiles - sousPhoto + 46 - 14) / 2)); // mord ~40 px sur la photo
+      sx = W - rEcran - 14; sy = surTuiles - 8 - rEcran;
+    } else {
+      const droite = photoBox && photoBox.width ? photoBox.right - sceneBox.left : W * 0.62;
+      const haut = 84;
+      rEcran = Math.max(70, Math.min(270, (W - droite - 56) / 2, (surTuiles - haut - 24) / 2));
+      sx = droite + (W - droite) / 2; sy = haut + (surTuiles - haut) / 2;
+    }
+    const CX = Math.round(600 + (sx - W / 2) / k), CY = Math.round(350 + (sy - H / 2) / k);
+    const COUNTRY = Math.round(rEcran / k);                         // échelle « plongée sur le pays » (les villes défilent)
+    const BASE = Math.round(COUNTRY * 0.84);                        // échelle « survol » (pendant les vols)
     const progressEl = document.getElementById('dest-progress');
 
     const projection = d3.geoOrthographic()
@@ -1819,6 +1888,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===== Affiche une VILLE : grande photo + carte + marqueur allumé + progression =====
     function showCity(t, i) {
       const c = t.cities[i], N = t.cities.length;
+      window.__villeCourante = { code: t.key, nom: c.n }; // éditeur : « 📷 Changer la photo de cette ville »
       const card = document.getElementById('dest-card');
       card.style.color = t.color;
       setHeroPhoto(c.photo);
@@ -1960,6 +2030,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const probe = new Image();
     probe.onload = () => {
       incoming.src = src;
+      const flou = document.getElementById('hpb-flou');
+      if (flou) flou.style.backgroundImage = `url("${src}")`;
       // force reflow so the Ken Burns transform re-triggers
       void incoming.offsetWidth;
       incoming.classList.add('show');
@@ -1969,6 +2041,7 @@ document.addEventListener('DOMContentLoaded', () => {
     probe.onerror = () => { /* image manquante → on garde le dégradé de teinte */ };
     probe.src = src;
   }
+  window.setHeroPhoto = setHeroPhoto;
 
   // ===== ANIMATED STARFIELD (canvas, realistic twinkle + drift + shooting stars) =====
   function initStarfield() {
@@ -2070,6 +2143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('load', () => setTimeout(preparerHorsConnexion, 4000));
   }
 
+  window.preparerHorsConnexion = preparerHorsConnexion;
   function preparerHorsConnexion() {
     if (!('caches' in window) || !navigator.onLine || (navigator.connection && navigator.connection.saveData)) return;
     const urls = new Set();
@@ -2078,6 +2152,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (s && !s.startsWith('data:')) urls.add(new URL(s, location.href).href);
     });
     (window.__asiePhotos || []).forEach(u => urls.add(new URL(u, location.href).href));
+    // Toutes les photos du planning (y compris celles choisies ensuite dans l'éditeur)
+    const P = window.PLANNING;
+    [P.depart.photo, ...P.pays.flatMap((p) => [p.banniere && p.banniere.src, ...(p.galerie || []).map((g) => g.src), ...Object.values(p.lieux || {}).map((l) => l.photo)])]
+      .filter((u) => u && !u.startsWith('data:')).forEach((u) => urls.add(new URL(u, location.href).href));
     // Fond des cartes : 5 × 5 tuiles autour du centre de chaque carte, au zoom affiché au départ
     const tuile = (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${z}/${y}/${x}`;
     const tx = (lng, z) => Math.floor((lng + 180) / 360 * 2 ** z);
@@ -2402,13 +2480,15 @@ document.addEventListener('DOMContentLoaded', () => {
     initCartes();
     if (enEdition) outils();
     window.scrollTo(0, y);
+    clearTimeout(rafraichir.t);
+    rafraichir.t = setTimeout(() => { if (window.preparerHorsConnexion && navigator.serviceWorker && navigator.serviceWorker.controller) window.preparerHorsConnexion(); }, 3000);
   }
 
   // ── Mode édition ──
   function basculer(on) {
     enEdition = on;
     document.body.classList.toggle('edition', on);
-    if (on) { outils(); $$('#sections-pays details').forEach((d) => { d.open = true; }); }
+    if (on) { outils(); $$('#sections-pays details').forEach((d) => { d.open = true; }); setTimeout(reprendreAnciennesPhotos, 400); }
     else { $$('[contenteditable]').forEach((el) => el.removeAttribute('contenteditable')); $$('.ed-ui').forEach((el) => el.remove()); }
     majBarre();
   }
@@ -2417,11 +2497,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function outils() {
     $$('.ed-ui').forEach((el) => el.remove());
     $$('#sections-pays [data-champ]').forEach((el) => { el.setAttribute('contenteditable', 'true'); });
+    document.getElementById('hero').insertAdjacentHTML('beforeend', `<div class="ed-ui ed-hero-photo">${bouton('photo-diaporama', '📷 Changer la photo de cette ville', 'Photo du diaporama (ville affichée en ce moment)')}</div>`);
     PLANNING.pays.forEach((p, i) => {
       const sec = document.querySelector(`section[data-pays="${i}"]`);
       if (!sec) return;
       const c = `data-c="pays.${i}"`;
       $('.section-header', sec).insertAdjacentHTML('beforeend', `<div class="ed-ui ed-ligne">${bouton('pays', '⚙️ Pays, lieux & photos', '', c)}${bouton('stat-ajout', '+ Chiffre clé', '', c)}${i > 0 ? bouton('pays-haut', '↑', 'Monter le pays', c) : ''}${i < PLANNING.pays.length - 1 ? bouton('pays-bas', '↓', 'Descendre le pays', c) : ''}</div>`);
+      const ban = $('.banner', sec);
+      if (ban) ban.insertAdjacentHTML('beforeend', `<div class="ed-ui ed-sur-photo">${bouton('photo-banniere', '📷 Changer la photo', '', c)}</div>`);
+      $$('.gallery-item', sec).forEach((g, k) => g.insertAdjacentHTML('beforeend', `<div class="ed-ui ed-sur-photo">${bouton('photo-galerie', '📷', 'Changer cette photo', `data-c="pays.${i}.galerie.${k}"`)}${bouton('suppr', '✕', 'Retirer de la galerie', `data-c="pays.${i}.galerie.${k}"`)}</div>`));
+      $('.gallery', sec).insertAdjacentHTML('beforeend', `<div class="gallery-item ed-ui ed-galerie-plus">${bouton('galerie-ajout', '+ Photo', 'Ajouter une photo à la galerie', c)}</div>`);
       $$('.stat', sec).slice(2).forEach((s, k) => s.insertAdjacentHTML('beforeend', `<span class="ed-ui">${bouton('suppr', '✕', 'Retirer ce chiffre', `data-c="pays.${i}.stats.${k}"`)}</span>`));
       $('.phases', sec).insertAdjacentHTML('beforeend', `<div class="ed-ui ed-ligne">${bouton('etape-ajout', '+ Ajouter une étape', '', c)}</div>`);
       $('.practical', sec).insertAdjacentHTML('beforeend', `<div class="ed-ui ed-ligne">${bouton('pratique-ajout', '+ Info pratique', '', c)}</div>`);
@@ -2471,6 +2556,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const nouvelleEtape = () => ({ id: 'e' + uid(), emoji: '📍', nom: 'Nouvelle étape', nuits: 1, base: '', lieu: '', datesPlus: '', jours: [{ act: '', notes: '' }], notes: '' });
     switch (act) {
       case 'pays': return dialoguePays(+c.split('.')[1]);
+      case 'photo-banniere': { const p = lire(c); changerPhoto(p.banniere, 'src', { titre: `Grande photo · ${p.nom}`, recherche: p.nom }); return; }
+      case 'photo-galerie': { const g = lire(c); changerPhoto(g, 'src', { titre: 'Photo de la galerie', recherche: sansBalises(g.txt), largeur: 500 }); return; }
+      case 'galerie-ajout': {
+        const p = lire(c);
+        choisirPhoto({ titre: `Nouvelle photo · ${p.nom}`, recherche: p.nom, largeur: 500 }).then((r) => {
+          if (!r) return;
+          const txt = (prompt('Légende de la photo (ex. « Kyoto · Fushimi Inari ») :', '') || '').trim();
+          p.galerie.push(Object.assign({ slug: `${p.code}-gal-${uid()}`, label: `${p.nom} · ${txt}`, src: r.src, txt }, r.credit ? { credit: r.credit } : {}));
+          changement(); rafraichir();
+        });
+        return;
+      }
+      case 'photo-diaporama': photoDiaporama(); return;
       case 'pays-haut': case 'pays-bas': deplacer(PLANNING.pays, k, act === 'pays-haut' ? -1 : 1); break;
       case 'stat-ajout': lire(c).stats.push({ num: '1', lab: 'à modifier' }); break;
       case 'pratique-ajout': lire(c).pratique.push({ ico: '📌', txt: 'Nouvelle info' }); break;
@@ -2630,12 +2728,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function dialogueLieu(cPays, nom, apres, suggestion) {
     const p = lire(cPays), l = nom ? p.lieux[nom] : {};
+    let credit; // undefined = inchangé
     dialogue(nom ? `Lieu · ${esc(nom)}` : 'Nouveau lieu', [
       { cle: 'nom', label: 'Nom (affiché sur le globe et la carte)', valeur: nom || suggestion || '' },
       { type: 'html', html: `<div class="ed-champ"><span>Position</span><button type="button" class="ed-b" data-x="chercher">📍 Trouver la position à partir du nom</button><small class="ed-trouve"></small></div>` },
       { cle: 'lat', label: 'Latitude', type: 'number', valeur: l.lat, court: true },
       { cle: 'lng', label: 'Longitude', type: 'number', valeur: l.lng, court: true },
-      { cle: 'photo', label: 'Photo (adresse d’une image)', valeur: l.photo || '', placeholder: 'https://… ou photos/….jpg', aide: 'Grande photo du globe et vignette de la carte.' },
+      { cle: 'photo', label: 'Photo du diaporama et de la carte', valeur: l.photo || '', placeholder: 'https://… ou photos/….jpg' },
+      { type: 'html', html: '<div class="ed-champ"><button type="button" class="ed-b" data-x="photo">📷 Choisir la photo</button></div>' },
       { cle: 'motcle', label: 'Mot-clé (carte)', valeur: l.motcle || '', court: true },
       ...(p.style === 'china' ? [{ cle: 'couleur', label: 'Couleur', type: 'color', valeur: l.couleur || p.couleur, court: true }] : []),
     ], (v, erreur) => {
@@ -2643,6 +2743,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!(Math.abs(v.lat) <= 90) || !(Math.abs(v.lng) <= 180) || v.lat === null || v.lng === null) return erreur('Position manquante : utilise « 📍 Trouver la position ».'), false;
       if (v.nom !== nom && p.lieux[v.nom]) return erreur('Ce lieu existe déjà.'), false;
       const nouveau = { lat: v.lat, lng: v.lng, photo: v.photo, motcle: v.motcle, ...(v.couleur ? { couleur: v.couleur } : {}) };
+      const cr = credit !== undefined ? credit : (v.photo === l.photo ? l.credit : null);
+      if (cr) nouveau.credit = cr;
       if (nom && v.nom !== nom) {
         delete p.lieux[nom];
         p.etapes.forEach((e) => { if (e.lieu === nom) e.lieu = v.nom; e.jours.forEach((j) => { if (j.lieu === nom) j.lieu = v.nom; }); });
@@ -2651,6 +2753,11 @@ document.addEventListener('DOMContentLoaded', () => {
       changement();
       if (apres) apres(v.nom); else rafraichir();
     }, { surBouton: async (id, v, f) => {
+      if (id === 'photo') {
+        const r = await choisirPhoto({ titre: `Photo · ${v.nom || 'lieu'}`, recherche: v.nom, actuelle: f.elements.photo.value });
+        if (r) { f.elements.photo.value = r.src; credit = r.credit || null; }
+        return;
+      }
       if (id !== 'chercher') return;
       const info = $('.ed-trouve', f);
       if (!v.nom) { info.textContent = 'Écris d’abord le nom.'; return; }
@@ -2744,6 +2851,145 @@ document.addEventListener('DOMContentLoaded', () => {
       majBarre();
       if (v.api) recuperer(true);
     });
+  }
+
+  // ── Choisir une photo : recherche Wikimedia Commons, photo de l'appareil (envoyée sur Drive) ou adresse ──
+  const sansBalises = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  async function chercherCommons(q, largeur) {
+    const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=30'
+      + `&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap')}&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=500`;
+    const r = await fetch(u).then((x) => x.json());
+    return Object.values((r.query || {}).pages || {})
+      .sort((a, b) => a.index - b.index)
+      .map((p) => p.imageinfo && p.imageinfo[0]).filter((i) => i && i.thumburl && i.width >= Math.min(largeur, 1000) && i.width >= i.height * 0.6)
+      .map((i) => {
+        const md = i.extmetadata || {};
+        i.thumburl = i.thumburl.split("?")[0]; i.url = i.url.split("?")[0]; // sans les « ?utm_… » de Wikimedia
+        return {
+          apercu: i.thumburl,
+          src: largeur > 500 && i.width > 1280 ? i.thumburl.replace('/500px-', '/1280px-') : largeur > 500 ? i.url : i.thumburl,
+          credit: { auteur: sansBalises(md.Artist && md.Artist.value).slice(0, 80) || 'inconnu', licence: md.LicenseShortName ? md.LicenseShortName.value : '', page: i.descriptionurl },
+        };
+      });
+  }
+  function reduire(file, max = 1600) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const f = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+  async function envoyerPhoto(dataUrl, nom) {
+    const s = sync();
+    if (!s) throw new Error('Configure d’abord la synchronisation (⚙︎ dans la barre du bas).');
+    const r = await fetch(s.api, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ops: [{ type: 'photo', oid: 'f-' + uid(), qui: s.qui, nom, donnees: dataUrl }] }) }).then((x) => x.json());
+    const err = (r.erreurs || [])[0];
+    if (!r.ok || err || !r.photo) throw new Error((err && err.erreur) || r.erreur || 'Envoi refusé');
+    return r.photo.url;
+  }
+  /** Ouvre le choix de photo ; résout avec { src, credit } (credit absent pour une photo perso) ou null. */
+  function choisirPhoto({ titre, recherche, actuelle, largeur = 1280 }) {
+    return new Promise((resolve) => {
+      const d = document.createElement('div');
+      d.className = 'ed-photos ed-ui';
+      d.innerHTML = `<div class="ed-dialogue">
+        <div class="ed-dialogue-tete"><h3>${esc(titre)}</h3><button type="button" class="ed-b" data-p="fermer">✕</button></div>
+        ${actuelle ? `<div class="ed-photo-actuelle"><img src="${esc(actuelle)}" alt=""><span>Photo actuelle</span></div>` : ''}
+        <form class="ed-ligne ed-recherche"><input type="search" name="q" value="${esc(recherche || '')}" placeholder="ex. Kyoto Fushimi Inari"><button type="submit" class="ed-b ed-principal">🔍 Chercher</button></form>
+        <div class="ed-grille-photos"><p class="ed-texte">Photos libres de Wikimedia Commons (crédit ajouté automatiquement). Touche une photo pour la choisir.</p></div>
+        <div class="ed-ligne">
+          <label class="ed-b">📷 Depuis mon appareil<input type="file" accept="image/*" hidden></label>
+          <input type="url" name="url" placeholder="…ou coller l’adresse d’une image" class="ed-url">
+          <button type="button" class="ed-b" data-p="url">OK</button>
+        </div>
+        <div class="ed-erreur" role="alert"></div>
+      </div>`;
+      document.body.appendChild(d);
+      const grille = $('.ed-grille-photos', d), erreur = (m) => { $('.ed-erreur', d).textContent = m; };
+      let resultats = [];
+      const fin = (v) => { d.remove(); resolve(v); };
+      const lancer = async () => {
+        const q = $('input[name=q]', d).value.trim();
+        if (!q) return;
+        grille.innerHTML = '<p class="ed-texte">Recherche…</p>';
+        try {
+          resultats = await chercherCommons(q, largeur);
+          grille.innerHTML = resultats.length ? resultats.map((r, i) => `<button type="button" data-i="${i}" title="${esc(r.credit.auteur)} · ${esc(r.credit.licence)}"><img src="${esc(r.apercu)}" alt="" loading="lazy"></button>`).join('')
+            : '<p class="ed-texte">Aucune photo trouvée : essaie d’autres mots (en anglais souvent mieux : « Kyoto temple »).</p>';
+        } catch (e) { grille.innerHTML = '<p class="ed-texte">Pas de réseau : la recherche ne marche qu’en ligne.</p>'; }
+      };
+      $('form', d).addEventListener('submit', (ev) => { ev.preventDefault(); lancer(); });
+      d.addEventListener('click', (ev) => {
+        if (ev.target === d) return fin(null);
+        const b = ev.target.closest('[data-i],[data-p]');
+        if (!b) return;
+        if (b.dataset.p === 'fermer') return fin(null);
+        if (b.dataset.p === 'url') {
+          const u = $('input[name=url]', d).value.trim();
+          if (!/^https?:\/\/\S+$/.test(u)) return erreur('Adresse invalide (elle doit commencer par https://).');
+          return fin({ src: u });
+        }
+        if (b.dataset.i !== undefined) fin(resultats[+b.dataset.i]);
+      });
+      $('input[type=file]', d).addEventListener('change', async (ev) => {
+        const f = ev.target.files[0];
+        if (!f) return;
+        erreur(''); grille.innerHTML = '<p class="ed-texte">Envoi de la photo… (quelques secondes)</p>';
+        try { fin({ src: await envoyerPhoto(await reduire(f), f.name) }); }
+        catch (e) { grille.innerHTML = ''; erreur(e.message || 'Envoi impossible (réseau ?).'); }
+      });
+      if (recherche) lancer();
+    });
+  }
+  /** Change la photo d'un objet du planning (lieu, bannière, image de galerie, départ) et met tout à jour. */
+  async function changerPhoto(obj, cle, options) {
+    const r = await choisirPhoto(Object.assign({ actuelle: obj[cle] }, options));
+    if (!r) return null;
+    obj[cle] = r.src;
+    if (r.credit) obj.credit = r.credit; else delete obj.credit;
+    changement(); rafraichir();
+    return r;
+  }
+  /** Photo du diaporama (ville affichée en ce moment en haut de page). */
+  async function photoDiaporama() {
+    const v = window.__villeCourante;
+    if (!v) return;
+    let obj = null, cle = 'photo';
+    if (v.code === 'home') obj = PLANNING.depart;
+    else { const p = PLANNING.pays.find((x) => x.code === v.code); obj = p && p.lieux[v.nom]; }
+    if (!obj) return;
+    const r = await changerPhoto(obj, cle, { titre: `Photo du diaporama · ${v.nom}`, recherche: v.nom });
+    if (!r) return;
+    (window.__TOURS || []).forEach((t) => t.cities.forEach((c) => { if (c.n === v.nom && (t.key === v.code)) c.photo = r.src; }));
+    if (window.setHeroPhoto) window.setHeroPhoto(r.src);
+  }
+  window.__choisirPhoto = choisirPhoto;
+
+  // Ancien outil 🖼️ (photos gardées dans un seul navigateur) : on propose de les reprendre dans le planning, pour tous
+  async function reprendreAnciennesPhotos() {
+    let o = {};
+    try { o = JSON.parse(localStorage.getItem('asia2027_photos') || '{}'); } catch (e) { return; }
+    const slugs = Object.keys(o);
+    if (!slugs.length || !confirm(`Tu avais choisi ${slugs.length} photo(s) avec l’ancien outil 🖼️ sur cet appareil. Les reprendre dans le planning (pour les avoir aussi sur l’autre téléphone) ?`)) return;
+    let n = 0;
+    for (const slug of slugs) {
+      for (const p of PLANNING.pays) {
+        const cible = p.banniere && p.banniere.slug === slug ? p.banniere : (p.galerie || []).find((g) => g.slug === slug);
+        if (!cible) continue;
+        try { cible.src = o[slug].startsWith('data:') ? await envoyerPhoto(o[slug], slug + '.jpg') : o[slug]; delete cible.credit; n++; }
+        catch (e) { toast('Une photo n’a pas pu être envoyée : ' + e.message); }
+      }
+    }
+    if (n) { try { localStorage.removeItem('asia2027_photos'); } catch (e) { /* rien */ } changement(); rafraichir(); toast(`✓ ${n} photo(s) reprise(s) : pense à « Enregistrer ».`); }
   }
 
   // ── Enregistrement en ligne ──
