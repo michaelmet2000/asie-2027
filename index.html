@@ -215,14 +215,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 .globe-shade { fill: url(#shadeGrad); pointer-events: none; }
 /* --- TRIP PATH --- */
-.trip-arc {
-  fill: none;
-  stroke: rgba(232,201,122,0.85);
-  stroke-width: 1.6;
-  stroke-dasharray: 5 4;
-  filter: drop-shadow(0 0 6px rgba(232,201,122,0.6));
-  animation: dashDrift 28s linear infinite;
-}
+.trip-route { fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 1.2; stroke-dasharray: 2 4; stroke-linecap: round; }
+.trip-arc { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 @keyframes dashDrift {
   from { stroke-dashoffset: 0; }
   to   { stroke-dashoffset: -110; }
@@ -237,15 +231,15 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   0%   { transform: scale(1);   opacity: 0.5; }
   100% { transform: scale(3.6); opacity: 0;   }
 }
+/* Villes à venir : anneau creux · déjà vues : point blanc · ville actuelle : gros point coloré cerclé de blanc */
 .marker-dot {
-  fill: currentColor;
-  opacity: 0.38;
-  filter: drop-shadow(0 0 5px currentColor);
-  transition: opacity 320ms ease;
+  fill: rgba(13,13,31,0.9); stroke: #fff; stroke-width: 1.4; opacity: 0.85;
+  transform-box: fill-box; transform-origin: center; transition: transform 300ms ease, fill 300ms ease;
 }
-.marker.done .marker-dot { opacity: 0.95; }
-.marker.is-current .marker-dot { opacity: 1; }
-.marker-core { fill: #fff; opacity: 0.85; }
+.marker.done .marker-dot { fill: #fff; stroke: rgba(13,13,31,0.85); stroke-width: 1.2; opacity: 1; }
+.marker.is-current .marker-dot { fill: currentColor; stroke: #fff; stroke-width: 2; transform: scale(1.55); filter: drop-shadow(0 0 6px currentColor); }
+.marker-core { fill: #fff; opacity: 0; }
+.marker.is-current .marker-core { opacity: 1; }
 .marker-label {
   fill: #fff;
   font-family: 'Playfair Display', Georgia, serif;
@@ -765,6 +759,20 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 .day-table td:first-child { font-weight: 700; color: var(--c-primary); white-space: nowrap; }
 .day-table tr:hover td { background: rgba(255,255,255,0.02); }
+@media (max-width: 640px) {
+  /* Téléphone : chaque jour = une petite carte (« J1 · 17 fév · Mer », puis les activités en pleine largeur, puis les notes) */
+  .country-section .container { padding: 0 12px; }
+  .phase { padding: 20px 16px 18px; }
+  .day-table thead { display: none; }
+  .day-table, .day-table tbody { display: block; width: 100%; }
+  .day-table tr { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; padding: 12px 2px; border-bottom: 1px solid rgba(46,46,88,0.6); }
+  .day-table td { display: block; padding: 0; border: 0; }
+  .day-table td:nth-child(2) { align-self: center; color: var(--tx-mut); font-size: 12.5px; }
+  .day-table td:nth-child(3) { grid-column: 1 / -1; margin-top: 6px; font-size: 14.5px; line-height: 1.5; color: var(--tx); }
+  .day-table td:nth-child(4) { grid-column: 1 / -1; margin-top: 6px; font-size: 13px; line-height: 1.45; color: var(--tx-mut); padding-left: 10px; border-left: 2px solid var(--c-primary); }
+  body:not(.edition) .day-table td:nth-child(4):empty { display: none; }
+  .day-table tr:hover td { background: none; }
+}
 
 .notes {
   margin-top: 16px; padding: 14px 16px;
@@ -1230,6 +1238,10 @@ body.edition .ed-hero-photo .ed-b { background: rgba(13,13,31,0.88); border-colo
 .ed-grille-photos button:hover, .ed-grille-photos button:focus { border-color: var(--ac); }
 .ed-grille-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ed-grille-photos .ed-texte { grid-column: 1 / -1; }
+.ed-villes { max-height: none; overflow: visible; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+.ed-villes button { position: relative; }
+.ed-villes span { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 6px 5px; font-size: 12px; font-weight: 700; color: #fff; text-align: left; background: linear-gradient(transparent, rgba(0,0,0,0.85)); }
+.ed-villes .ed-courante { border-color: var(--ac); }
 @media print { #ed-fab, #ed-barre, .ed-ui, #ed-toast { display: none !important; } }
   </style>
 </head>
@@ -1279,6 +1291,7 @@ body.edition .ed-hero-photo .ed-b { background: rgba(13,13,31,0.88); border-colo
     <g id="globe-content" clip-path="url(#globeClipD3)">
       <path id="graticule" class="graticule"/>
       <g id="countries"></g>
+      <path id="trip-route" class="trip-route"/>
       <path id="trip-arc" class="trip-arc"/>
     </g>
 
@@ -1820,6 +1833,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const gCountries = d3.select('#countries');
     let tripArc = null;   // tracé intra-pays (grandit ville par ville)
+    let tripRoute = null; // itinéraire complet du pays (pointillé discret)
 
     // Render countries once
     gCountries.selectAll('path')
@@ -1870,6 +1884,7 @@ document.addEventListener('DOMContentLoaded', () => {
       syncGlobeRadius();
       gCountries.selectAll('path').attr('d', geoPath);
       d3.select('#graticule').attr('d', geoPath(graticule()));
+      d3.select('#trip-route').attr('d', tripRoute ? geoPath(tripRoute) : null);
       d3.select('#trip-arc').attr('d', tripArc ? geoPath(tripArc) : null);
       gMarkers.selectAll('g.marker').each(function(d) {
         const p = projection([d.lng, d.lat]);
@@ -1940,7 +1955,8 @@ document.addEventListener('DOMContentLoaded', () => {
       gMarkers.selectAll('g.marker').style('color', t.color)
         .select('text.marker-label').text(d => d.n);
       gCountries.selectAll('path').classed('is-current', c => +c.id === t.iso);
-      d3.select('#trip-arc').style('stroke', t.color).style('filter', 'drop-shadow(0 0 6px ' + t.color + ')');
+      d3.select('#trip-arc').style('filter', `drop-shadow(0 0 3px ${t.color}) drop-shadow(0 0 1.5px rgba(0,0,0,0.9))`);
+      tripRoute = t.cities.length > 1 ? { type: 'LineString', coordinates: t.cities.map(c2 => [c2.lng, c2.lat]) } : null;
       if (progressEl) progressEl.innerHTML = t.cities.map(() => '<span></span>').join('');
     }
 
@@ -1953,7 +1969,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const geoI = d3.geoInterpolate(from, to);
       const t0 = performance.now();
       document.getElementById('dest-card').classList.remove('active');
-      tripArc = null;
+      tripArc = null; tripRoute = null;
       let done = false;
       function finish() {
         if (done) return; done = true;
@@ -1986,7 +2002,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const t = TOURS[idx];
       enterTour(idx);
       const N = t.cities.length;
-      const hold = (N === 1) ? 2600 : Math.max(950, Math.min(1500, 9000 / N));
+      const hold = (N === 1) ? 2600 : N >= 10 ? 1900 : Math.max(950, Math.min(1500, 9000 / N)); // pays à 10 villes et + (Japon) : plus lent
       let i = 0;
       (function step() {
         showCity(t, i);
@@ -2511,7 +2527,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function outils() {
     $$('.ed-ui').forEach((el) => el.remove());
     $$('#sections-pays [data-champ]').forEach((el) => { el.setAttribute('contenteditable', 'true'); });
-    document.getElementById('hero').insertAdjacentHTML('beforeend', `<div class="ed-ui ed-hero-photo">${bouton('photo-diaporama', '📷 Changer la photo de cette ville', 'Photo du diaporama (ville affichée en ce moment)')}</div>`);
+    document.getElementById('hero').insertAdjacentHTML('beforeend', `<div class="ed-ui ed-hero-photo">${bouton('photo-diaporama', '📷 Photos du diaporama', 'Choisir la photo de n’importe quelle ville')}</div>`);
     PLANNING.pays.forEach((p, i) => {
       const sec = document.querySelector(`section[data-pays="${i}"]`);
       if (!sec) return;
@@ -2582,7 +2598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return;
       }
-      case 'photo-diaporama': photoDiaporama(); return;
+      case 'photo-diaporama': dialoguePhotosDiaporama(); return;
       case 'pays-haut': case 'pays-bas': deplacer(PLANNING.pays, k, act === 'pays-haut' ? -1 : 1); break;
       case 'stat-ajout': lire(c).stats.push({ num: '1', lab: 'à modifier' }); break;
       case 'pratique-ajout': lire(c).pratique.push({ ico: '📌', txt: 'Nouvelle info' }); break;
@@ -2972,6 +2988,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (r.credit) obj.credit = r.credit; else delete obj.credit;
     changement(); rafraichir();
     return r;
+  }
+  /** Liste de toutes les villes du diaporama : on choisit la ville, puis sa photo (pas besoin d'attendre qu'elle passe). */
+  function dialoguePhotosDiaporama() {
+    $$('.ed-photos').forEach((x) => x.remove());
+    const v = window.__villeCourante || {};
+    const groupes = [{ titre: `${PLANNING.depart.drapeau} Départ`, villes: [{ code: 'home', nom: PLANNING.depart.nom, obj: PLANNING.depart }] }]
+      .concat(PLANNING.pays.map((p) => ({ titre: `${p.drapeau} ${p.nom}`, villes: (p._lieux || []).map((l) => ({ code: p.code, nom: l.nom, obj: p.lieux[l.nom] })).filter((x) => x.obj) })));
+    const liste = groupes.flatMap((g) => g.villes);
+    const d = document.createElement('div');
+    d.className = 'ed-photos ed-ui';
+    d.innerHTML = `<div class="ed-dialogue">
+      <div class="ed-dialogue-tete"><h3>Photos du diaporama</h3><button type="button" class="ed-b" data-p="fermer">✕</button></div>
+      <p class="ed-texte">Touche une ville pour changer sa photo.</p>
+      ${groupes.map((g) => `<div class="ed-sous-titre">${esc(g.titre)}</div><div class="ed-grille-photos ed-villes">${g.villes.map((x) => `<button type="button" data-i="${liste.indexOf(x)}" class="${x.code === v.code && x.nom === v.nom ? 'ed-courante' : ''}"><img src="${esc(x.obj.photo || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span>${esc(x.nom)}</span></button>`).join('')}</div>`).join('')}
+    </div>`;
+    document.body.appendChild(d);
+    if (window.twemoji) twemoji.parse(d, { folder: 'svg', ext: '.svg', base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/' });
+    d.addEventListener('click', async (ev) => {
+      const b = ev.target.closest('[data-i],[data-p]');
+      if (ev.target === d || (b && b.dataset.p === 'fermer')) { d.remove(); return; }
+      if (!b || b.dataset.i === undefined) return;
+      const x = liste[+b.dataset.i];
+      d.remove();
+      const r = await changerPhoto(x.obj, 'photo', { titre: `Photo du diaporama · ${x.nom}`, recherche: x.nom });
+      if (r) {
+        (window.__TOURS || []).forEach((t) => t.cities.forEach((c) => { if (t.key === x.code && c.n === x.nom) c.photo = r.src; }));
+        const cour = window.__villeCourante || {};
+        if (cour.code === x.code && cour.nom === x.nom && window.setHeroPhoto) window.setHeroPhoto(r.src);
+      }
+      dialoguePhotosDiaporama(); // la liste revient, pour en changer plusieurs à la suite
+    });
   }
   /** Photo du diaporama (ville affichée en ce moment en haut de page). */
   async function photoDiaporama() {
