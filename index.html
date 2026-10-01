@@ -1789,12 +1789,19 @@ document.addEventListener('DOMContentLoaded', () => {
       sx = droite + (W - droite) / 2; sy = haut + (surTuiles - haut) / 2;
     }
     const CX = Math.round(600 + (sx - W / 2) / k), CY = Math.round(350 + (sy - H / 2) / k);
-    const COUNTRY = Math.round(rEcran / k);                         // échelle « plongée sur le pays » (les villes défilent)
-    const BASE = Math.round(COUNTRY * 0.84);                        // échelle « survol » (pendant les vols)
+    const RAYON = Math.round(rEcran / k);                           // rayon du globe dessiné : il ne change jamais à l'écran
+    const BASE = Math.round(RAYON * 0.84);                          // échelle « survol » (pendant les vols : Terre entière)
+    // Zoom « loupe » de chaque pays : la carte s'agrandit DANS le cercle (le globe garde sa taille) pour que toutes
+    // les villes du pays le remplissent (~3/4 du rayon). Départ (une seule ville) : Terre entière.
+    TOURS.forEach(t => {
+      const dmax = Math.max(0, ...t.cities.map(c => d3.geoDistance([c.lng, c.lat], t.center)));
+      const s = t.key === 'home' ? RAYON : dmax > 0.004 ? (RAYON * 0.72) / Math.sin(Math.min(dmax, Math.PI / 2)) : RAYON * 4;
+      t.zoom = Math.max(RAYON, Math.min(RAYON * 7, s));
+    });
     const progressEl = document.getElementById('dest-progress');
 
     const projection = d3.geoOrthographic()
-      .scale(COUNTRY)
+      .scale(TOURS[0].zoom)
       .translate([CX, CY])
       .clipAngle(90)
       .rotate([-TOURS[0].center[0], -TOURS[0].center[1], 0]);
@@ -1830,6 +1837,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Markers group — peuplé dynamiquement par pays (enterTour)
     const gMarkers = d3.select('#markers');
 
+    /** Point dessiné à l'intérieur du cercle du globe (en zoom loupe, le reste de la carte est caché). */
+    function dansDisque(p) {
+      return !!p && Math.hypot(p[0] - CX, p[1] - CY) <= Math.min(projection.scale(), RAYON) - 2;
+    }
     function isVisible(coord) {
       const rot = projection.rotate();
       // spherical dot product against center: cos(distance)
@@ -1847,7 +1858,7 @@ document.addEventListener('DOMContentLoaded', () => {
           cAtmo  = document.getElementById('globeAtmo');
     [cOcean, cClip, cShade, cRim, cAtmo].forEach(c => { if (c) { c.setAttribute('cx', CX); c.setAttribute('cy', CY); } });
     function syncGlobeRadius() {
-      const s = projection.scale();
+      const s = Math.min(projection.scale(), RAYON); // au-delà du rayon : zoom à l'intérieur du cercle (loupe)
       if (cOcean) cOcean.setAttribute('r', s);
       if (cClip)  cClip.setAttribute('r', s);
       if (cShade) cShade.setAttribute('r', s);
@@ -1862,7 +1873,7 @@ document.addEventListener('DOMContentLoaded', () => {
       d3.select('#trip-arc').attr('d', tripArc ? geoPath(tripArc) : null);
       gMarkers.selectAll('g.marker').each(function(d) {
         const p = projection([d.lng, d.lat]);
-        const vis = isVisible([d.lng, d.lat]);
+        const vis = isVisible([d.lng, d.lat]) && dansDisque(p);
         const sel = d3.select(this);
         if (p && vis) {
           sel.attr('transform', `translate(${p[0]},${p[1]})`).attr('opacity', 1);
@@ -1876,7 +1887,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const p = projection([lng, lat]);
       const p2 = projection([aheadLng, aheadLat]);
       const plane = document.getElementById('plane');
-      if (p && p2 && isVisible([lng, lat])) {
+      if (p && p2 && isVisible([lng, lat]) && dansDisque(p)) {
         const bearing = Math.atan2(p2[1] - p[1], p2[0] - p[0]) * 180 / Math.PI;
         plane.setAttribute('transform', `translate(${p[0]},${p[1]}) rotate(${bearing})`);
         plane.style.opacity = 1;
@@ -1935,7 +1946,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===== Vol d'un pays au suivant (dézoom → survol étoilé → zoom) =====
     let tIdx = 0;
-    const TRAVEL_MS = 1900;
+    const TRAVEL_MS = 2600; // un peu plus long : dézoom, vol, puis zoom
     function flyToTour(idx) {
       const from = TOURS[tIdx].center, to = TOURS[idx].center;
       const rInterp = d3.interpolate(projection.rotate(), [-to[0], -to[1], 0]);
@@ -1947,7 +1958,7 @@ document.addEventListener('DOMContentLoaded', () => {
       function finish() {
         if (done) return; done = true;
         projection.rotate([-to[0], -to[1], 0]);
-        projection.scale(COUNTRY);
+        projection.scale(TOURS[idx].zoom);
         render();
         document.getElementById('plane').style.opacity = 0;
         tIdx = idx; runTour(idx);
@@ -1956,7 +1967,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (done) return;
         const e = d3.easeCubicInOut(Math.min(1, (now - t0) / TRAVEL_MS));
         projection.rotate(rInterp(e));
-        projection.scale(COUNTRY - (COUNTRY - BASE) * Math.sin(Math.PI * e));
+        // Dézoom jusqu'à la Terre entière en quittant le pays, puis zoom sur le pays d'arrivée (échelle logarithmique = fluide)
+        const zA = TOURS[tIdx].zoom, zB = TOURS[idx].zoom;
+        const zoomLog = (a, b, u) => Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * d3.easeCubicInOut(u));
+        projection.scale(e < 0.45 ? zoomLog(zA, BASE, e / 0.45) : e > 0.55 ? zoomLog(BASE, zB, (e - 0.55) / 0.45) : BASE);
         const pos = geoI(e), ah = geoI(Math.min(1, e + 0.03));
         render();
         updatePlane(pos[0], pos[1], ah[0], ah[1]);

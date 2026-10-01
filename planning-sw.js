@@ -1,7 +1,7 @@
 // Asie 2027 · planning — fonctionnement hors connexion (lecture seule, aucune synchronisation).
 // La page et ses bibliothèques sont gardées en cache à l'installation ; les photos et les tuiles de carte
 // le sont au fil de la consultation. Changer VERSION à chaque mise à jour du site.
-const VERSION = 'asie27-v7';
+const VERSION = 'asie27-v8';
 const IMG = 'asie27-img';          // photos, drapeaux, tuiles de carte (cache séparé, gardé entre les versions)
 const IMG_MAX = 600;               // au-delà, les plus anciennes sont supprimées
 const CORE = ['./', 'planning.webmanifest', 'appli_planning/icon-192.png', 'appli_planning/icon-512.png', 'appli_planning/apple-touch-icon.png'];
